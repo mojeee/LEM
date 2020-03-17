@@ -216,4 +216,3 @@ void setOptions(const ConfigOptions& options); //!< Set options read from the co
     PerfTimer jacobianTimer;
     PerfTimer conductivityTimer, viscosityTimer, diffusivityTimer;
 };
-# LEM

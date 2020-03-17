@@ -278,7 +278,7 @@ int FlameSolver::finishStep()
     setupTimer.stop();
   ofstream myfile;
   myfile.open ("example.txt");
-  myfile << "Writing this to a file.\n";
+  myfile << "this shows the time : " << t << "\n";
   myfile.close();
 /*
     if (t > tRegrid || nRegrid >= options.regridStepInterval) {
@@ -1120,4 +1120,3 @@ void FlameSolver::printPerfString(std::ostream& stats, const std::string& label,
 }
 
 
-# LEM
