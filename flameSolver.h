@@ -28,6 +28,7 @@ class FlameSolver : public GridBased, public SplitSolver
 public:
     FlameSolver();
     virtual ~FlameSolver();
+        int stepcounter=0;
 	int  nspc;
 	int nc;
 	int ncp1;

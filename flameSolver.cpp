@@ -1,7 +1,13 @@
 #include "flameSolver.h"
 #include "scalarFunction.h"
 #include "iostream"
+#include <stdio.h>
+#include <io.h>
 #include "fstream"
+#include <bits/stdc++.h> 
+#include <sys/stat.h> 
+#include <sys/types.h> 
+
 using namespace std;
 
 FlameSolver::FlameSolver()
@@ -276,10 +282,39 @@ int FlameSolver::finishStep()
         nProfile = 0;
     }
     setupTimer.stop();
-  ofstream myfile;
-  myfile.open ("example.txt");
-  myfile << "this shows the time : " << t << "\n";
-  myfile.close();
+
+    if (t == 2e-9 )
+     {
+        mkdir("../directory");
+      	ofstream counter ("result/time.txt");
+      	counter << "this shows the time : " << t << "\n";
+      	stepcounter = 1;
+      	counter << "step : " << stepcounter << "\n";
+        counter.close();
+     }
+
+     else if (t > 2e-9 && t<tEnd)
+     {      
+         stepcounter= t/(2e-9);
+         if ( stepcounter%50 ==0)
+          {
+            int profile=stepcounter/50;
+            string profileString=std::to_string(profile);
+            string pref="result/";
+            string suf=".txt";
+            string filename1= profileString+suf;
+            string filename= pref+filename1;
+            ofstream prof (filename);
+            prof << "step : " << profile << "\n";
+            prof.close();
+          }
+
+       
+     }
+     
+    
+
+
 /*
     if (t > tRegrid || nRegrid >= options.regridStepInterval) {
         if (debugParameters::debugAdapt || debugParameters::debugRegrid) {
