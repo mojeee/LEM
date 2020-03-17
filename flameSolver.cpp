@@ -2,9 +2,9 @@
 #include "scalarFunction.h"
 #include "iostream"
 #include <stdio.h>
-#include <io.h>
 #include "fstream"
-
+#include <sstream>
+#include <string>
 
 using namespace std;
 
@@ -289,13 +289,31 @@ int FlameSolver::finishStep()
 //********************************************************************************************************************************************
 //********************************************************************************************************************************************
 
-     if (t < 2e-9 )
+     if (t == 2e-9 )
      {
       	ofstream counter ("result/time.txt");
       	counter << "this shows the time : " << t << "\n";
       	stepcounter = 1;
       	counter << "step : " << stepcounter << "\n";
         counter.close();
+        // debug input parameter
+        ofstream debug_input ("result/debug_input.txt");
+        Config config;
+        loadConfig(config);
+        debug_input << "endtime : "<<config.endtime << '\n'<< "timestep : "<<config.timestep << '\n'<<"Re_t : " <<config.Re_t << '\n';
+        debug_input << "dom : "<<config.dom << '\n'<<"pressure : "<< config.pressure << '\n'<< "u : "<<config.u << '\n';
+        debug_input <<"T : "<< config.T << '\n'<< "cp : "<<config.cp << '\n'<< "kinematic viscosity"<<config.kinematic_viscosity << '\n';
+        debug_input << "D : "<<config.D << '\n'<<"lambda : " <<config.lambda << '\n'<<"read data : " <<config.r_datas << '\n';
+        debug_input << "Triplet Map : "<<config.trip_map<< '\n'<< " Write data : "<<config.w_datas<< '\n';
+       debug_input <<"over write initial condition" <<config.ow_init<< '\n'<<"f_cor : "<< config.f_cor<< '\n'<<"t_cor : "<< config.t_cor<< '\n';
+        debug_input << "GFAC : "<<config.GFAC<< '\n'<< "FAL : "<<config.FAL<< '\n'<< "H2 : "<<config.H2<< '\n'<< "H : "<< config.H<< '\n';
+      debug_input <<"O : " << config.O<< '\n'<< "O2 : "<<config.oxygen<< '\n'<< "OH : "<<config.hydroxyl<< '\n'<< "H2O : "<<config.water<< '\n';
+        debug_input << "CH4 : "<<config.methane<< '\n'<< "CO : "<<config.cmonooxide<< '\n'<< "CO2 : "<<config.cdioxide<< '\n';
+        debug_input << "N2 : "<<config.N2<< '\n'<< "Integral Lenth Scale : "<<config.Intlength<< '\n';
+        debug_input << "Number of realization to record : "<<config.NofRperR<< '\n';
+        debug_input << "Number of Steps per realization : "<<config.NSPE<< '\n';
+        debug_input << config.last<< '\n';
+        debug_input.close();
      }
 
      else if (t > 2e-9 && t<tEnd)
@@ -401,6 +419,80 @@ int FlameSolver::finishStep()
     }
     nTotal++;
     return 0;
+}
+
+void FlameSolver::loadConfig(Config& config) {
+    ifstream fin("config.txt");
+    string line;
+    while (getline(fin, line)) {
+        istringstream sin(line.substr(line.find("=") + 1));
+        if (line.find("endtime") != -1)
+            sin >> config.endtime;
+        else if (line.find("timestep") != -1)
+            sin >> config.timestep;
+        else if (line.find("Re_t") != -1)
+            sin >> config.Re_t;
+        else if (line.find("dom") != -1)
+            sin >> config.dom;
+        else if (line.find("pressure") != -1)
+            sin >> config.pressure;
+        else if (line.find("u") != -1)
+            sin >> config.u;
+        else if (line.find("T") != -1)
+            sin >> config.T;
+        else if (line.find("cp") != -1)
+            sin >> config.cp;
+        else if (line.find("kinematic_viscosity") != -1)
+            sin >> config.kinematic_viscosity;
+        else if (line.find("D") != -1)
+            sin >> config.D;
+        else if (line.find("lambda") != -1)
+            sin >> config.lambda;
+        else if (line.find("r_datas") != -1)
+            sin >> config.r_datas;
+        else if (line.find("trip_map") != -1)
+            sin >> config.trip_map;
+        else if (line.find("w_datas") != -1)
+            sin >> config.w_datas;
+        else if (line.find("ow_init") != -1)
+            sin >> config.ow_init;
+        else if (line.find("f_cor") != -1)
+            sin >> config.f_cor;
+        else if (line.find("t_cor") != -1)
+            sin >> config.t_cor;
+        else if (line.find("GFAC") != -1)
+            sin >> config.GFAC;
+        else if (line.find("FAL") != -1)
+            sin >> config.FAL;
+        else if (line.find("H2") != -1)
+            sin >> config.H2;
+        else if (line.find("H") != -1)
+            sin >> config.H;
+        else if (line.find("O") != -1)
+            sin >> config.O;
+        else if (line.find("oxygen") != -1)
+            sin >> config.oxygen;
+        else if (line.find("hydroxyl") != -1)
+            sin >> config.hydroxyl;
+        else if (line.find("water") != -1)
+            sin >> config.water;
+        else if (line.find("methane") != -1)
+            sin >> config.methane;
+        else if (line.find("cmonooxide") != -1)
+            sin >> config.cmonooxide;
+        else if (line.find("cdioxide") != -1)
+            sin >> config.cdioxide;
+        else if (line.find("N2") != -1)
+            sin >> config.N2;
+        else if (line.find("Intlength") != -1)
+            sin >> config.Intlength;
+        else if (line.find("NofRperR") != -1)
+            sin >> config.NofRperR;
+        else if (line.find("NSPE") != -1)
+            sin >> config.NSPE;
+        else if (line.find("last") != -1)
+            sin >> config.last;
+    }
 }
 
 void FlameSolver::finalize()

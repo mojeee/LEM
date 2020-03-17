@@ -28,6 +28,19 @@ class FlameSolver : public GridBased, public SplitSolver
 public:
     FlameSolver();
     virtual ~FlameSolver();
+struct Config {
+    double    endtime;
+    double timestep;
+    double Re_t;
+    double dom;// cm
+    double pressure; // dynes/cm2
+    double u; // cm/s
+    double T; // K
+    double cp; // erg/g-K
+    double kinematic_viscosity; // cm2/s
+    double D,lambda,r_datas,trip_map,w_datas,ow_init,f_cor,t_cor,GFAC,FAL,H2,H,O,oxygen,hydroxyl,water,methane;
+    double cmonooxide,cdioxide,N2,Intlength,NofRperR,NSPE,last;
+};
         int stepcounter=0;
 	int  nspc;
 	int nc;
@@ -47,7 +60,7 @@ public:
 
 
 
-	
+	void loadConfig(Config& config);
 	void Random_Number();
 	void eddyLength();
 	void BTriplet(double var[]);
