@@ -12,7 +12,6 @@
 #include "convectionSystem.h"
 #include "quasi2d.h"
 #include "callback.h"
-
 #include <iostream>
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/shared_ptr.hpp>
@@ -28,8 +27,11 @@ class FlameSolver : public GridBased, public SplitSolver
 public:
     FlameSolver();
     virtual ~FlameSolver();
-struct Config {
-    double    endtime;
+    // parameter which I add to flamesolver
+    int write_parameter;
+    struct Config 
+    {
+    double endtime;
     double timestep;
     double Re_t;
     double dom;// cm
@@ -40,32 +42,33 @@ struct Config {
     double kinematic_viscosity; // cm2/s
     double D,lambda,r_datas,trip_map,w_datas,ow_init,f_cor,t_cor,GFAC,FAL,H2,H,O,oxygen,hydroxyl,water,methane;
     double cmonooxide,cdioxide,N2,Intlength,NofRperR,NSPE,last;
-};
-        int stepcounter=0;
-	int  nspc;
-	int nc;
-	int ncp1;
-	double Dx;
-	double PDFA;
-	double PDFB;
-	double Dom;
-	double ncm1;
-	double XLint;
-	double XLk;
-	double Re;
-	int MTS;
-	double random;
-	int L;
-	int M;
+    };
+    
+    int stepcounter=0;
+    int  nspc;
+    int nc;
+    int ncp1;
+    double Dx;
+    double PDFA;
+    double PDFB;
+    double Dom;
+    double ncm1;
+    double XLint;
+    double XLk;
+    double Re;
+    int MTS;
+    double random;
+    int L;
+    int M;
+    // functions which I add to flamesolver
+    void loadConfig(Config& config);
+    void Random_Number();
+    void eddyLength();
+    void BTriplet(double var[]);
+    void TM();
+    void setCoefficient_MA();
 
-
-
-	void loadConfig(Config& config);
-	void Random_Number();
-	void eddyLength();
-	void BTriplet(double var[]);
-        void TM();
-void setOptions(const ConfigOptions& options); //!< Set options read from the configuration file
+    void setOptions(const ConfigOptions& options); //!< Set options read from the configuration file
     void initialize(); //!< call to generate profiles and perform one-time setup
     void finalize();
 

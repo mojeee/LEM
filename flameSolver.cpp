@@ -314,6 +314,7 @@ int FlameSolver::finishStep()
         debug_input << "Number of Steps per realization : "<<config.NSPE<< '\n';
         debug_input << config.last<< '\n';
         debug_input.close();
+      write_parameter =1;
      }
 
      else if (t > 2e-9 && t<tEnd)
@@ -323,7 +324,7 @@ int FlameSolver::finishStep()
           {
             int profile=stepcounter/50;
             string profileString=std::to_string(profile);
-            string pref="result/";
+            string pref="result/prof00";
             string suf=".txt";
             string filename1= profileString+suf;
             string filename= pref+filename1;
@@ -331,10 +332,15 @@ int FlameSolver::finishStep()
             prof << "step : " << profile << "\n";
             prof.close();
           }
-
+          
+         write_parameter = 3;
        
      }
      
+     if (write_parameter<2)
+	{
+         setCoefficient_MA();
+        }
 
 
 
@@ -494,6 +500,59 @@ void FlameSolver::loadConfig(Config& config) {
             sin >> config.last;
     }
 }
+
+
+void FlameSolver::setCoefficient_MA()
+{
+// this function try to set the matrix of conductivities and diffusion coefficients
+// this function has been written on 17 March 2020 by Mojtaba Amini based on PREMIX7-camb.f
+// contact : mojtaba.amini.1995@gmail.com
+/* OUTPUT-
+   COND   - ARRAY OF CONDUCTIVITIES AT THE MESH MID-POINTS.
+   D      - MATRIX OF DIFFUSION COEFFICIENTS AT THE MESH MID-POINTS.
+              DIMENSION D(nspc,*) EXACTLY nspc FOR THE FIRST DIMENSION,
+              AND AT LEAST nc+1 FOR THE SECOND.
+*/
+	int j,k;
+//        double diff_coefficientss[nSpec][nPoints];
+        for ( j= 0; j< nPoints; j++)
+         {
+		lambda[j] = gas.getThermalConductivity();
+		gas.getThermalDiffusionCoefficients(&Dkt(0,j));
+         }
+
+        ofstream th_cond ("debug_thermal_conductivity.txt");
+
+        th_cond << "Thermal Conductivity" << "\n" ;
+        for ( j= 0; j< nPoints; j++)
+         {
+		th_cond << lambda(j) << "\t" ;
+         }
+	
+	th_cond.close();
+
+	for (k=0;k<nSpec; k++)
+	{
+		for ( j=0;j<nPoints;j++)
+		{
+//			diff_coefficientss(k,j)=Dkt(k,j);
+		}
+		
+	}
+
+
+        ofstream diff_coff ("debug_ThermalDiffusionCoefficients.txt");
+
+        for ( j= 0; j< nPoints; j++)
+         {
+		diff_coff << Dkt(1,j) << "\t" << Dkt(2,j) ;
+         }
+
+        diff_coff.close();
+	
+	
+}
+
 
 void FlameSolver::finalize()
 {
