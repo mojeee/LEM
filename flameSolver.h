@@ -16,6 +16,7 @@
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/shared_ptr.hpp>
 #include "tbb_tools.h"
+#include "cantera/transport/GasTransport.h"
 
 using std::string;
 class ScalarFunction;
@@ -59,6 +60,7 @@ public:
     int MTS;
     double random;
     int L;
+    dmatrix Diff_s; //!< MIXTURE-AVERAGED DIFFUSION COEFFICIENTS
     int M;
     // functions which I add to flamesolver
     void loadConfig(Config& config);
@@ -174,6 +176,7 @@ public:
     dmatrix cpSpec; //!< species molar heat capacities [J/kmol*K]
     dmatrix rhoD; //!< density * diffusivity [kg/m*s]
     dmatrix Dkt; //!< thermal diffusivity
+    dmatrix Dkm; //!< mixture average diffusion
     dmatrix hk; //!< species molar enthalpies [J/kmol]
     dmatrix jFick; //!< Fickian mass flux [kg/m^2*s]
     dmatrix jSoret; //!< Soret mass flux [kg/m^2*s]

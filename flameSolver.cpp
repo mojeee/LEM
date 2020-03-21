@@ -6,6 +6,7 @@
 #include <sstream>
 #include <string>
 
+
 using namespace std;
 
 FlameSolver::FlameSolver()
@@ -337,12 +338,7 @@ int FlameSolver::finishStep()
        
      }
      
-     if (write_parameter<2)
-	{
-         setCoefficient_MA();
-        }
-
-
+    
 
 /*
     if (t > tRegrid || nRegrid >= options.regridStepInterval) {
@@ -517,8 +513,7 @@ void FlameSolver::setCoefficient_MA()
 //        double diff_coefficientss[nSpec][nPoints];
         for ( j= 0; j< nPoints; j++)
          {
-		lambda[j] = gas.getThermalConductivity();
-		gas.getThermalDiffusionCoefficients(&Dkt(0,j));
+
          }
 
         ofstream th_cond ("debug_thermal_conductivity.txt");
@@ -545,7 +540,7 @@ void FlameSolver::setCoefficient_MA()
 
         for ( j= 0; j< nPoints; j++)
          {
-		diff_coff << Dkt(1,j) << "\t" << Dkt(2,j) ;
+		diff_coff << Dkm(4,j)*10000000 << "\t" << Dkm(11,j)*10000000;
          }
 
         diff_coff.close();
@@ -809,6 +804,7 @@ void FlameSolver::updateCrossTerms()
 
     assert(mathUtils::notnan(ddtCross));
     assert(mathUtils::notnan(sumcpj));
+
 }
 
 void FlameSolver::updateBC()
@@ -884,9 +880,16 @@ void FlameSolver::updateChemicalProperties(size_t j1, size_t j2)
         diffusivityTimer.start();
         gas.getWeightedDiffusionCoefficientsMass(&rhoD(0,j));
         gas.getThermalDiffusionCoefficients(&Dkt(0,j));
+	gas.getDiffusionCoefficientsMole(&Dkm(0,j));
         diffusivityTimer.stop();
         transportTimer.stop();
     }
+ if (write_parameter<2)
+	{
+         setCoefficient_MA();
+        }
+
+
 }
 
 
