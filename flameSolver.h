@@ -37,8 +37,8 @@ public:
     double Re_t;
     double dom;// cm
     double pressure; // dynes/cm2
-    double u; // cm/s
-    double T; // K
+    double TangentialVelocity; // cm/s
+    double Temp; // K
     double cp; // erg/g-K
     double kinematic_viscosity; // cm2/s
     double D,lambda,r_datas,trip_map,w_datas,ow_init,f_cor,t_cor,GFAC,FAL,H2,H,O,oxygen,hydroxyl,water,methane;
@@ -63,13 +63,14 @@ public:
     dmatrix Diff_s; //!< MIXTURE-AVERAGED DIFFUSION COEFFICIENTS
     int M;
     // functions which I add to flamesolver
-    void loadConfig(Config& config);
+    void ReadParameters(Config& config);
     void Random_Number();
     void eddyLength();
     void BTriplet(double var[]);
     void TM();
-    void setCoefficient_MA();
-
+    void SetIC();
+    void Debug_MA();
+    void PREMIXADV();
     void setOptions(const ConfigOptions& options); //!< Set options read from the configuration file
     void initialize(); //!< call to generate profiles and perform one-time setup
     void finalize();
@@ -160,6 +161,8 @@ public:
     VecMap U; //!< normalized tangential velocity (u*a/u_inf) [1/s]
     VecMap T; //!< temperature [K]
     MatrixMap Y; //!< species mass fractions, Y(k,j) [-]
+    MatrixMap YV; //!< species diffusion velocity, YV(k,j) [-]
+    MatrixMap Xmf; //!< species mole fractions, Xmf(k,j) [-]
 
     // Auxiliary variables:
     dvec rho; //!< density [kg/m^3]

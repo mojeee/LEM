@@ -300,10 +300,10 @@ int FlameSolver::finishStep()
         // debug input parameter
         ofstream debug_input ("result/debug_input.txt");
         Config config;
-        loadConfig(config);
+        ReadParameters(config);
         debug_input << "endtime : "<<config.endtime << '\n'<< "timestep : "<<config.timestep << '\n'<<"Re_t : " <<config.Re_t << '\n';
-        debug_input << "dom : "<<config.dom << '\n'<<"pressure : "<< config.pressure << '\n'<< "u : "<<config.u << '\n';
-        debug_input <<"T : "<< config.T << '\n'<< "cp : "<<config.cp << '\n'<< "kinematic viscosity"<<config.kinematic_viscosity << '\n';
+        debug_input << "dom : "<<config.dom << '\n'<<"pressure : "<< config.pressure << '\n'<< "u : "<<config.TangentialVelocity << '\n';
+        debug_input <<"T : "<< config.Temp << '\n'<< "cp : "<<config.cp << '\n'<< "kinematic viscosity"<<config.kinematic_viscosity << '\n';
         debug_input << "D : "<<config.D << '\n'<<"lambda : " <<config.lambda << '\n'<<"read data : " <<config.r_datas << '\n';
         debug_input << "Triplet Map : "<<config.trip_map<< '\n'<< " Write data : "<<config.w_datas<< '\n';
        debug_input <<"over write initial condition" <<config.ow_init<< '\n'<<"f_cor : "<< config.f_cor<< '\n'<<"t_cor : "<< config.t_cor<< '\n';
@@ -338,7 +338,10 @@ int FlameSolver::finishStep()
        
      }
      
-    
+     if (write_parameter<2)
+	{
+         Debug_MA();
+        }
 
 /*
     if (t > tRegrid || nRegrid >= options.regridStepInterval) {
@@ -423,7 +426,259 @@ int FlameSolver::finishStep()
     return 0;
 }
 
-void FlameSolver::loadConfig(Config& config) {
+
+
+void FlameSolver::Debug_MA()
+{
+// this function try to set the matrix of conductivities and diffusion coefficients
+// this function has been written on 17 March 2020 by Mojtaba Amini based on PREMIX7-camb.f
+// contact : mojtaba.amini.1995@gmail.com
+/* OUTPUT-
+   COND   - ARRAY OF CONDUCTIVITIES AT THE MESH MID-POINTS.
+   D      - MATRIX OF DIFFUSION COEFFICIENTS AT THE MESH MID-POINTS.
+              DIMENSION D(nspc,*) EXACTLY nspc FOR THE FIRST DIMENSION,
+              AND AT LEAST nc+1 FOR THE SECOND.
+*/
+	int j,k;
+//        double diff_coefficientss[nSpec][nPoints];
+        for ( j= 0; j< nPoints; j++)
+         {
+
+         }
+
+        ofstream th_cond ("debug_thermal_conductivity.txt");
+
+        th_cond << "Thermal Conductivity" << "\n" ;
+        for ( j= 0; j< nPoints; j++)
+         {
+		th_cond << lambda(j) << "\t" ;
+         }
+	
+	th_cond.close();
+
+	for (k=0;k<nSpec; k++)
+	{
+		for ( j=0;j<nPoints;j++)
+		{
+//			diff_coefficientss(k,j)=Dkt(k,j);
+		}
+		
+	}
+
+
+        ofstream diff_coff ("debug_DiffusionCoefficients.txt");
+
+        for ( j= 0; j< nPoints; j++)
+         {
+		diff_coff << Dkm(4,j)*10000000 << "\t" << Dkm(11,j)*10000000;
+         }
+
+        diff_coff.close();
+	
+	
+}
+
+void FlameSolver::DiffusionVelocityCalculator()
+{
+	int j,k,jj;
+	dvec YAV;
+	double TAV,SUM,VC;
+        dmatrix xmfp;
+		
+	for(j=0; j<nPoints; j++)
+	{
+		TAV = 0.5 * (T(j) + T(j+1));
+		for(k=0;k<nSpec;k++)
+		{
+			YAV(K) = 0.5 * (Y(k,j) + Y(k,j+1));
+		}		
+		for(jj=0;jj<nPoints-1;jj++)
+		{
+			for(k=0;k<nSpec;k++)
+			{			
+				Xmfp(k,jj) = Xmf(k,jj+1);
+			}
+		}	
+
+		
+		for(k=0;k<nSpec;k++)
+		{			
+			Xmfp(k,nPoints-1) = Xmf(k,nPoints-1);
+		}
+		
+
+		for(k=0;k<nSpec;k++)
+		{
+                        YV(k,j) = - Dkm(k,j)*(W(k)/Wmx(j))*(Xmfp(k,j)-Xmf(k,j))/Dx;
+		}
+
+		SUM = 0.0;
+		for(k=0;k<nSpec;k++)
+		{
+                        SUM = SUM + YV(k,j);
+		}
+                VC = - SUM;
+		for(k=0;k<nSpec;k++)
+		{
+                        YV(k,j) = YV(k,j) + YAV(k)*VC;
+		}
+	}
+	
+}
+
+void FlameSolver::PREMIXADV()
+{
+	dmatrix F;	
+	dvec YAV;
+	double TAV,RHOP,RHOM,SUMYK,SUMX,TDOT;
+	int k,j,kk,jj;
+//      EVALUATE AND STORE THE DIFFUSION VELOCITIES
+	DiffusionVelocityCalculator();
+
+//      FIRST CELL
+
+	TAV = 0.5 * ( T(0) + T(1) );  
+	for(k = 0; k<nSpec;k++)
+	{
+        	YAV(k) = 0.5 * (Y(k,0) + Y(k,1));	
+	}
+//      set density
+        gas.setStateMass(&YAV(0), TAV);
+        RHOP = gas.getDensity();
+//                   INTERIOR MESH POINTS
+
+///   INTERIOR CELLS
+      for( j = 1;j<nPoints;j++)
+	{
+        	TAV = 0.5 * ( T(j) + T(j+1) );
+        	for( k = 0;k<nSpec;k++)
+		{
+           		YAV(k) = 0.5 * (Y(k,j) + Y(k,j+1));
+		}
+
+        	RHOM = RHOP
+        	gas.setStateMass(&YAV(0), TAV);
+        	RHOP = gas.getDensity();
+//             FORM THE CHEMICAL RATE TERMS
+
+
+// dmatrix wDot; //!< species production rates [kmol/m^3*s]
+        	gas.getReactionRates(&wDot(0,j));
+
+	        for (k = 0; k<Spec; k++)
+		{
+	        	wDot(k,j) = wDot(k,j)*GFAC;
+		}
+// Enthalpies in molar units for the species.
+	        gas.getEnthalpies(&hk(0,j));
+// Mean specific heat at constant pressure
+	        cp[j] = gas.getSpecificHeatCapacity();
+// Specific heats at constant pressure for the species.
+	        gas.getSpecificHeatCapacities(&cpSpec(0,j));
+
+///              SPECIES CONSERVATION EQUATION
+
+	        SUMYK = 0.0;
+// XMDOT is set in SetIC
+	        XMDXM = XMDOT / Dx;
+	        	for (k = 0; k<nSpec;k++)
+	        	{
+	           		SUMYK = SUMYK + Y(j,k);
+//?????? XMWT
+	           		F(3+k,j) = - dt*(XMDXM * ( Y(k,j)-Y(k,j-1) ) + (RHOP*YV(k,j) - RHOM*YV(k,j-1))/Dx - wDot(k,j)*XMWT(k))/((RHOP + RHOM)/2.0);
+	        	}
+//               ENERGY EQUATION
+	        SUMX = 0.0;
+	        TDOT = 0.0;
+	        for (k = 0; k<nSpec;k++)
+		{
+	           TDOT = TDOT + wDot(k,j)*hk(k,j);
+	           SUMX = SUMX + 0.25 * (RHOP*YV(k,j) + RHOM*YV(k,j-1)) *cpSpec(k,j)*(T(j+1)-T(j-1))/Dx;
+		}
+
+	        F(3,j) = - dt*(XMDOT*(T(j)-T(j-1))/Dx-(lambda(j)*(T(j+1)-T(j))/Dx-lambda(j-1)*(T(j)-T(j-1))/Dx)/(cp(j)*Dx)+(SUMX+TDOT)/cp(j))/((RHOP+ RHOM)/2.0);
+
+	}
+//                UPDATE ARRAYS
+
+      for (j = 1;j<nPoints;j++)
+	{
+      	   T(j) = T(j) + F(3,j);
+      	   for(k = 0;k<nSpec;k++)
+	     {
+      	       Y(k,j) = Y(k,j) + F(3+k,j);
+      	       if(Y(k,j)< 0.0 ) 
+		{
+                  Y(k,j) = 0.0;
+		}
+             }
+        }
+
+//              RIGHT BOUNDARY - ZERO GRADIENT
+
+      T(nPoints) = T(nPoints-1)
+      forv(kk = 0;kk<nSpec;k++)
+	{
+         Y(kk,nPoints) = Y(kk,nPoints-1)
+	}
+
+}
+
+// this function are not implemented
+//
+//       SUBROUTINE WRITEFILES(NSPC,NCP1,RHO,U,T,YZ)
+//      SUBROUTINE WRITEPV(ncp1,t)
+//      SUBROUTINE WRITEPV_DEBUG(ncp1,t)
+//      SUBROUTINE WRITEICFILES(NSPC,NCP1,X,RHO,U,T,YZ)
+
+void FlameSolver::SetIC()
+{
+
+	double YSUM,R,Wmix;
+	int j;
+// SET BOUNDARY Y
+        gas.initialize();
+        nSpec = gas.nSpec;
+        nVars = nSpec + 2;
+        gas.getMolecularWeights(W);
+        grid.setSize(x.size());
+        loadProfile();
+// calculate gas constant using chemkin
+	for(j=0;j<nPoints;j++)
+	{
+
+       		gas.setStateMass(&Y(0,j), T(j));
+        	rho[j] = gas.getDensity();
+        	Wmix = gas.getMixtureMolecularWeight();
+        	U(1)=TangentialVelocity;
+
+	}
+      XMDOT = rho(1)*U(1);
+}
+
+
+void FlameSolver::XRecord()
+
+{
+            string profileString=std::to_string(profile);
+            string pref="result/prof00";
+            string suf=".txt";
+            string filename1= profileString+suf;
+            string filename= pref+filename1;
+            ofstream prof (filename);
+       	    for ( j= 0; j< nPoints; j++)
+        	 {
+			prof<< lambda(j) << "\t" ;
+         	}
+            prof.close();
+}
+          
+// this function are not implemented
+//      SUBROUTINE READIC(NSPC,NCP1,DX,XMDOT,X,RHO,U,T,YZ)
+//       SUBROUTINE READINPUT(ifile,PARAMS)
+// 
+
+void FlameSolver::ReadParameters(Config& config) {
     ifstream fin("config.txt");
     string line;
     while (getline(fin, line)) {
@@ -439,9 +694,9 @@ void FlameSolver::loadConfig(Config& config) {
         else if (line.find("pressure") != -1)
             sin >> config.pressure;
         else if (line.find("u") != -1)
-            sin >> config.u;
+            sin >> config.TangentialVelocity;
         else if (line.find("T") != -1)
-            sin >> config.T;
+            sin >> config.Temp;
         else if (line.find("cp") != -1)
             sin >> config.cp;
         else if (line.find("kinematic_viscosity") != -1)
@@ -497,56 +752,227 @@ void FlameSolver::loadConfig(Config& config) {
     }
 }
 
-
-void FlameSolver::setCoefficient_MA()
+void FlameSolver::Random_Number()
 {
-// this function try to set the matrix of conductivities and diffusion coefficients
-// this function has been written on 17 March 2020 by Mojtaba Amini based on PREMIX7-camb.f
-// contact : mojtaba.amini.1995@gmail.com
-/* OUTPUT-
-   COND   - ARRAY OF CONDUCTIVITIES AT THE MESH MID-POINTS.
-   D      - MATRIX OF DIFFUSION COEFFICIENTS AT THE MESH MID-POINTS.
-              DIMENSION D(nspc,*) EXACTLY nspc FOR THE FIRST DIMENSION,
-              AND AT LEAST nc+1 FOR THE SECOND.
-*/
-	int j,k;
-//        double diff_coefficientss[nSpec][nPoints];
-        for ( j= 0; j< nPoints; j++)
-         {
+	 
 
-         }
 
-        ofstream th_cond ("debug_thermal_conductivity.txt");
-
-        th_cond << "Thermal Conductivity" << "\n" ;
-        for ( j= 0; j< nPoints; j++)
-         {
-		th_cond << lambda(j) << "\t" ;
-         }
+	random=double(rand())/RAND_MAX;
 	
-	th_cond.close();
+	 
 
-	for (k=0;k<nSpec; k++)
-	{
-		for ( j=0;j<nPoints;j++)
+}
+
+
+
+void FlameSolver::eddyLength()
+{
+        // generate a random number between 0 and 1
+	// logFile.write("hi moj, i'm here 11 ");
+
+        Random_Number();
+	int NSize;
+        // make sure eddy is Greater than 6 cells long
+        NSize = int(pow((random-PDFA)/PDFB,(-3.0/5.0))/Dx);
+	 //logFile.write("hi moj, i'm here 12");
+	
+	//NSize=40;	
+        while (NSize<5)
+        {
+		 //logFile.write("hi moj, i'm here 13");
+		Random_Number();
+                NSize = int(pow((random-PDFA)/PDFB,(-3.0/5.0))/Dx);
+        	//logFile.write(format("hi moj, the size value   NSize=%i  random=%d") % NSize % random);
+
+	}
+        // make sure eddy is divisible by 3
+        if((NSize%3)==0)
+        {
+         //logFile.write("hi moj, i'm here 14 ");
+
+                L=NSize;
+        }
+        else if ((NSize%3)==1)
+        {
+		 //logFile.write("hi moj, i'm here 15");
+
+                L=NSize-1;
+        }
+        else if ((NSize%3)==2)
+        {
+		 //logFile.write("hi moj, i'm here 16");
+
+                L=NSize+1;
+        }
+
+ //logFile.write(format("hi moj, i'm here 17   L=%i ") % L);
+
+}
+
+
+
+
+void FlameSolver::BTriplet(double var[])
+{
+        // Permute Cells M through M+L-1 of the array S
+        // as prescribrd by the discrete triplet map , where L is an integer multiple by 3.
+        int Lo,k,j;
+        Lo=int(L/3);
+        double X[L];
+
+	 //logFile.write("hi moj, i'm here 26 ");
+
+        // first part of mapping
+        for(j=1;j<=Lo;j++)
+        {
+		 //logFile.write("hi moj, i'm here 27 ");
+
+                k=M+3*(j-1);
+                X[j]=var[k]; //gather the cells going to the 1st image 
+        }
+	 //logFile.write("hi moj, i'm here 28 ");
+
+        // second part of mapping
+        for (j=1;j<=Lo;j++)
+        {
+		 //logFile.write("hi moj, i'm here 29");
+
+                k=M+L+1-(3*j); // minus sign because second image is flipped
+                X[j+Lo]=var[k]; // gather the cells going to 2nd image
+        }
+
+	 //logFile.write("hi moj, i'm here 30");
+
+        // third part of mapping
+        for (j=1;j<=Lo;j++)
+        {
+		 //logFile.write("hi moj, i'm here 31");
+
+                k=M+(3*j)-1;
+                X[j+Lo+Lo]=var[k];// gather the cells going to the 3rd image 
+        }
+		 //logFile.write("hi moj, i'm here 32");
+
+        for(j=1;j<=L;j++)
+        {
+	 //logFile.write("hi moj, i'm here 33");
+
+        k=M+j-1;
+        var[k]=X[j];
+        }
+
+	 //logFile.write("hi moj, i'm here 34 ");
+
+}
+
+
+
+
+
+void FlameSolver::TM()
+{
+	// MTS shows number of triplet map require in each realization 
+	// first of all call a random number 
+	// 
+	double Temp[nPoints];
+        double y_x[nPoints];
+        int j,k;
+	 //logFile.write("hi moj, i'm here 2 ");
+
+	
+	
+		 //logFile.write("hi moj, i'm here 3");
+
+		// first of all call a random number
+		Random_Number();
+		 //logFile.write("hi moj, i'm here 6 ");
+
+		// m determine the starting point of triplet map
+		M=int(random*nc);
+		 //logFile.write("hi moj, i'm here 7 ");
+
+// this loop check the starting point of triplet map
+		while(M<(ncp1/4))
 		{
-//			diff_coefficientss(k,j)=Dkt(k,j);
+			 //logFile.write("hi moj, i'm here 8");
+
+			Random_Number();
+			M=int(random*nc);
+			 //logFile.write("hi moj, i'm here 9 ");
+
+		}
+        	// calculate the eddy length
+		 //logFile.write("hi moj, i'm here 10");
+
+		eddyLength();	
+		 //logFile.write("hi moj, i'm here 18 ");
+
+		// check eddy size does not exceed domain
+		if((L+M)>nc)
+		{
+			 //logFile.write("hi moj, i'm here 19");
+
+			M=nc-L;
+		}
+		 //logFile.write("hi moj, i'm here 20");
+
+		while((L+M)>nc || M<(ncp1/4))
+		{
+			 //logFile.write("hi moj, i'm here 21");
+
+			Random_Number();
+			M=int(random*nc);
+			 //logFile.write("hi moj, i'm here 22");
+
+			eddyLength();
+			 //logFile.write("hi moj, i'm here 23 ");
+
 		}
 		
-	}
+		//logFile.write(format("hi moj, i'm between 23 and 24 %i  ") % M);
+
+		for(j=1;j<nc;j++)
+                {
+                         //logFile.write("hi moj, i'm here 24 ");
+
+                        Temp[j]=T(j);
+//		 logFile.write(format("Temperature %d.") % Temp[j]);
+
+                }
+
+                 BTriplet(Temp);
+
+                for(j=1;j<nc;j++)
+                {
+                        T(j)=Temp[j];
+			 //logFile.write("hi moj, i'm here 36");
+
+                }
+
+		for(k=1;k<=nspec;k++)
+                {
+			for(j=1;j<nc;j++)
+			{                        
+				y_x[j]=Y(k,j);
+			 	//logFile.write("hi moj, i'm here 36");
+			}
+			
+			BTriplet(y_x);
+
+			for(j=1;j<nc;j++)
+			{                        
+				Y(k,j)=y_x[j];
+			 	//logFile.write("hi moj, i'm here 36");
+			}
+                }
 
 
-        ofstream diff_coff ("debug_ThermalDiffusionCoefficients.txt");
-
-        for ( j= 0; j< nPoints; j++)
-         {
-		diff_coff << Dkm(4,j)*10000000 << "\t" << Dkm(11,j)*10000000;
-         }
-
-        diff_coff.close();
-	
 	
 }
+
+
+
+
 
 
 void FlameSolver::finalize()
@@ -662,6 +1088,7 @@ void FlameSolver::resizeAuxiliary()
     cpSpec.resize(nSpec, nPoints);
     rhoD.resize(nSpec, nPoints);
     Dkt.resize(nSpec, nPoints);
+    Dkm.resize(nSpec, nPoints);
     wDot.resize(nSpec, nPoints);
     hk.resize(nSpec, nPoints);
     jFick.setZero(nSpec, nPoints);
@@ -881,14 +1308,10 @@ void FlameSolver::updateChemicalProperties(size_t j1, size_t j2)
         gas.getWeightedDiffusionCoefficientsMass(&rhoD(0,j));
         gas.getThermalDiffusionCoefficients(&Dkt(0,j));
 	gas.getDiffusionCoefficientsMole(&Dkm(0,j));
+        gas.getMoleFractions(&Xmf(0,j));
         diffusivityTimer.stop();
         transportTimer.stop();
     }
- if (write_parameter<2)
-	{
-         setCoefficient_MA();
-        }
-
 
 }
 
