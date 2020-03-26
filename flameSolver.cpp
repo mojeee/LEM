@@ -299,8 +299,7 @@ int FlameSolver::finishStep()
         counter.close();
         // debug input parameter
         ofstream debug_input ("result/debug_input.txt");
-        Config config;
-        ReadParameters(config);
+
         debug_input << "endtime : "<<config.endtime << '\n'<< "timestep : "<<config.timestep << '\n'<<"Re_t : " <<config.Re_t << '\n';
         debug_input << "dom : "<<config.dom << '\n'<<"pressure : "<< config.pressure << '\n'<< "u : "<<config.TangentialVelocity << '\n';
         debug_input <<"T : "<< config.Temp << '\n'<< "cp : "<<config.cp << '\n'<< "kinematic viscosity"<<config.kinematic_viscosity << '\n';
@@ -697,8 +696,8 @@ void FlameSolver::ReadParameters(Config& config) {
             sin >> config.TangentialVelocity;
         else if (line.find("T") != -1)
             sin >> config.Temp;
-        else if (line.find("cp") != -1)
-            sin >> config.cp;
+        else if (line.find("NumberOfCell") != -1)
+            sin >> config.NumberOfCell;
         else if (line.find("kinematic_viscosity") != -1)
             sin >> config.kinematic_viscosity;
         else if (line.find("D") != -1)
@@ -970,9 +969,86 @@ void FlameSolver::TM()
 	
 }
 
+void FlameSolver::CFUEL()
+{
+
+// NFL set based on chemistry, you should find the CH4 location in Y matrix
+	int NCP1,NSTAB;
+	double velocity,RHO2;
+	velocity=U(1);
+	RHO2=rho(1);
+	NCP1=nPoints+1;
+	NSTAB = int(NCP1/3);
+// MILD CORRECTION
+      if(Y(NFL,NSTAB)< 0.80*Y(NFL,0)  && velocity<30.0)
+	{
+         velocity= velocity + 0.001;
+	}
+      else if(Y(NFL,NSTAB+1)> 0.8*Y(NFL,0) && velocity> 15.0) 
+	{
+         velocity    = velocity - 0.0010;
+	}
+      
+// AGRESSIVE CORRECTION
+      if(  Y(NFL,NSTAB-2) .lt. 0.80*Y(NFL,0) && velocity < 30.0) 
+	{
+         velocity    = velocity + 0.01;
+	}
+      else if (  Y(NFL,NSTAB+3) > 0.80*Y(NFL,0) && velocity> 15.0) 	
+	{
+         velocity    = velocity - 0.01;
+	}
+ 
+      XMDOT = RHO*velocity;
+
+}
+
+// this function are not implemented
+//            SUBROUTINE SET_VELOCITY(NSPC,NCP1,NFL,DX,XMDOT,GFAC,P,ICKWRK,RCKWRK,RHO,U,XMWT,T,YZ)
+//      SUBROUTINE CTEMP(nspc,nspcm1,ickwk,rckwk,params,P,RHO,U,T,XMDOT)
+// the set logical function does not need to implement right now, it could be added in the upper version
+
+void FlameSolver::INIT_ALL()
+{
+
+        Config config;
+        ReadParameters(config);
+	NTS  = config.endtime/dt;	
+	DOM = config.dom;
+	NC= nPoints;
+	NCM1=NC-1;
+	XMDT = DT/DX;	
+	GFAC=config.GFAC;
+	NFL=config.FAL;
+	NSIM =config.NofRperR ;
+	NTSPSIM=config.NSPE ;
+}
 
 
 
+void FlameSolver::INIT_LEM()
+{
+ 	NTS_COUNT = 0;
+	XNU = config.kinematic_viscosity;
+	Re =  config.Re_t;
+	XLint = config.Intlength;
+	XLk   = XLint/pow(Re,0.75);
+	C_lambda = 15.0 ;
+	Rate = DOM*(54.0/5.0)*( XNU*Re / (C_lambda*pow(XLint,3)) )*( pow((XLint/XLk),(5/3)) - 1)/( 1 - pow((XLk/XLint),(4/3)) );
+	NTS_PE = (1.0/Rate)/dt+1;
+	PDFA = pow(XLint,(5.0/3.0)) * pow(XLk,(-5.0/3.0)) / ( pow((XLint/XLk),(5.0/3.0)) -1.0 );
+        PDFB = -pow(XLint,(5.0/3.0))/(  pow((XLint/XLk),(5.0/3.0)) -1.0 );
+	TAU = XLk*XLk/XNU;
+	if( (1.0/Rate)/dt < 1.0 )
+	{
+         MTS = int(Rate*dt)+1;
+	}
+	else
+	{
+         MTS = 1;
+        }
+
+}
 
 
 void FlameSolver::finalize()

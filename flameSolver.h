@@ -39,23 +39,24 @@ public:
     double pressure; // dynes/cm2
     double TangentialVelocity; // cm/s
     double Temp; // K
-    double cp; // erg/g-K
+    double NumberOfCell; // erg/g-K
     double kinematic_viscosity; // cm2/s
     double D,lambda,r_datas,trip_map,w_datas,ow_init,f_cor,t_cor,GFAC,FAL,H2,H,O,oxygen,hydroxyl,water,methane;
     double cmonooxide,cdioxide,N2,Intlength,NofRperR,NSPE,last;
     };
     
+    int NTS,NFL,NSIM,NTSPSIM;
     int stepcounter=0;
     int  nspc;
-    int nc;
+    int NC,NTS_COUNT;
     int ncp1;
-    double Dx;
+    double Dx,XNU;
     double PDFA;
     double PDFB;
-    double Dom;
-    double ncm1;
-    double XLint;
-    double XLk;
+    double DOM;
+    int NCM1;
+    double XLint,XMDT,GFAC;
+    double XLk,C_lambda,Rate,TAU;
     double Re;
     int MTS;
     double random;
@@ -71,6 +72,9 @@ public:
     void SetIC();
     void Debug_MA();
     void PREMIXADV();
+    void CFUEL();
+    void INIT_ALL();
+    void INIT_LEM();
     void setOptions(const ConfigOptions& options); //!< Set options read from the configuration file
     void initialize(); //!< call to generate profiles and perform one-time setup
     void finalize();
