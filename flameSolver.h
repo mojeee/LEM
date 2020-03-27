@@ -12,11 +12,11 @@
 #include "convectionSystem.h"
 #include "quasi2d.h"
 #include "callback.h"
+
 #include <iostream>
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/shared_ptr.hpp>
 #include "tbb_tools.h"
-#include "cantera/transport/GasTransport.h"
 
 using std::string;
 class ScalarFunction;
@@ -28,54 +28,66 @@ class FlameSolver : public GridBased, public SplitSolver
 public:
     FlameSolver();
     virtual ~FlameSolver();
-    // parameter which I add to flamesolver
-    int write_parameter;
-    struct Config 
-    {
-    double endtime;
+struct Config {
+    double    endtime;
     double timestep;
     double Re_t;
     double dom;// cm
     double pressure; // dynes/cm2
-    double TangentialVelocity; // cm/s
+    double velocity; // cm/s
     double Temp; // K
-    double NumberOfCell; // erg/g-K
+    double cp; // erg/g-K
     double kinematic_viscosity; // cm2/s
     double D,lambda,r_datas,trip_map,w_datas,ow_init,f_cor,t_cor,GFAC,FAL,H2,H,O,oxygen,hydroxyl,water,methane;
     double cmonooxide,cdioxide,N2,Intlength,NofRperR,NSPE,last;
-    };
-    
-    int NTS,NFL,NSIM,NTSPSIM;
-    int stepcounter=0;
-    int  nspc;
-    int NC,NTS_COUNT;
-    int ncp1;
-    double Dx,XNU;
-    double PDFA;
-    double PDFB;
-    double DOM;
-    int NCM1;
-    double XLint,XMDT,GFAC;
-    double XLk,C_lambda,Rate,TAU;
-    double Re;
-    int MTS;
-    double random;
-    int L;
-    dmatrix Diff_s; //!< MIXTURE-AVERAGED DIFFUSION COEFFICIENTS
-    int M;
-    // functions which I add to flamesolver
-    void ReadParameters(Config& config);
-    void Random_Number();
-    void eddyLength();
-    void BTriplet(double var[]);
-    void TM();
-    void SetIC();
-    void Debug_MA();
-    void PREMIXADV();
-    void CFUEL();
-    void INIT_ALL();
-    void INIT_LEM();
-    void setOptions(const ConfigOptions& options); //!< Set options read from the configuration file
+};
+        int stepcounter=0;
+	int  nspc;
+	int nc;
+	int ncp1;
+	double Dx;
+	double PDFA;
+	double PDFB;
+	double Dom;
+	double ncm1;
+	double XLint;
+	double XLk;
+	double Re;
+	int MTS;
+	double random;
+	int L;
+	int M;
+	int NTS;
+	double DOM;
+	int NC;
+	int NCM1;
+	int NCP1;
+	double DX;
+	double XMDT;
+	double GFAC;
+	int NFL;
+	int NSIM;
+	int NTSPSIM;
+	int NTS_COUNT;
+	double XNU;
+	double C_lambda;
+	double Rate;
+	int NTS_PE;
+	double TAU;
+	double XMDOT;
+	double P;
+
+	void GET_RHO_U();
+	void Debug_MA();
+	void ReadParameters(Config& config);
+	void Random_Number();
+	void eddyLength();
+	void BTriplet(double var[]);
+	void INIT_ALL();
+        void TM();
+	void INIT_LEM();
+	void Main_MA();
+void setOptions(const ConfigOptions& options); //!< Set options read from the configuration file
     void initialize(); //!< call to generate profiles and perform one-time setup
     void finalize();
 
@@ -164,9 +176,8 @@ public:
     // State variables:
     VecMap U; //!< normalized tangential velocity (u*a/u_inf) [1/s]
     VecMap T; //!< temperature [K]
+    
     MatrixMap Y; //!< species mass fractions, Y(k,j) [-]
-    MatrixMap YV; //!< species diffusion velocity, YV(k,j) [-]
-    MatrixMap Xmf; //!< species mole fractions, Xmf(k,j) [-]
 
     // Auxiliary variables:
     dvec rho; //!< density [kg/m^3]
@@ -174,6 +185,7 @@ public:
     dvec jCorr; //!< Correction to ensure sum of mass fractions = 1
     dvec sumcpj; //!< part of the enthalpy flux term
     dvec qDot; //!< Heat release rate [W/m^3]
+    dvec TempF;
     dmatrix wDot; //!< species production rates [kmol/m^3*s]
     dvec Wmx; //!< mixture molecular weight [kg/kmol]
     dvec W; //!< species molecular weights [kg/kmol]
@@ -183,11 +195,10 @@ public:
     dmatrix cpSpec; //!< species molar heat capacities [J/kmol*K]
     dmatrix rhoD; //!< density * diffusivity [kg/m*s]
     dmatrix Dkt; //!< thermal diffusivity
-    dmatrix Dkm; //!< mixture average diffusion
     dmatrix hk; //!< species molar enthalpies [J/kmol]
     dmatrix jFick; //!< Fickian mass flux [kg/m^2*s]
     dmatrix jSoret; //!< Soret mass flux [kg/m^2*s]
-
+    dmatrix MassF;
     // jCorr is a correction to force the net diffusion mass flux to be zero
     // jCorrSystem / jCorrSolver are used to introduce numerical diffusion into
     // jCorr to eliminate spatial instabilities
