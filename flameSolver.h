@@ -76,6 +76,9 @@ struct Config {
 	double TAU;
 	double XMDOT;
 	double P;
+        dmatrix Xmf; //!< species mole fractions, Xmf(k,j) [-]
+        dmatrix Dkm; //!< mixture average diffusion
+        dmatrix YV; 
 
 	void GET_RHO_U();
 	void Debug_MA();
@@ -87,6 +90,7 @@ struct Config {
         void TM();
 	void INIT_LEM();
 	void Main_MA();
+	void DiffusionVelocityCalculator();
 void setOptions(const ConfigOptions& options); //!< Set options read from the configuration file
     void initialize(); //!< call to generate profiles and perform one-time setup
     void finalize();
@@ -143,6 +147,7 @@ void setOptions(const ConfigOptions& options); //!< Set options read from the co
     double rhou, rhob, rhoLeft, rhoRight;
     double Tleft, Tright;
     dvec Yleft, Yright;
+
 
     void setupStep();
     void prepareIntegrators();

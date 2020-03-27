@@ -113,43 +113,7 @@ void FlameSolver::initialize(void)
 
     totalTimer.start();
 // *********************this part was added by me
-	// init all
-	Config config;
-        ReadParameters(config);
-	dt=config.timestep;
-	NTS  = config.endtime/dt;	
-	DOM = config.dom;
-	NC= nPoints;
-	NCM1=NC-1;
-	NCP1=nPoints+1;
-	DX=DOM/NCM1;
-	XMDT = dt/DX;	
-	GFAC=config.GFAC;
-	NFL=config.FAL;
-	NSIM =config.NofRperR ;
-	NTSPSIM=config.NSPE ;
-	// init LEM
- 	NTS_COUNT = 0;
-	XNU = config.kinematic_viscosity;
-	Re =  config.Re_t;
-	XLint = config.Intlength;
-	XLk   = XLint/pow(Re,0.75);
-	C_lambda = 15.0 ;
-	Rate = DOM*(54.0/5.0)*( XNU*Re / (C_lambda*pow(XLint,3)) )*( pow((XLint/XLk),(5/3)) - 1)/( 1 - pow((XLk/XLint),(4/3)) );
-	NTS_PE = (1.0/Rate)/dt+1;
-	PDFA = pow(XLint,(5.0/3.0)) * pow(XLk,(-5.0/3.0)) / ( pow((XLint/XLk),(5.0/3.0)) -1.0 );
-        PDFB = -pow(XLint,(5.0/3.0))/(  pow((XLint/XLk),(5.0/3.0)) -1.0 );
-	TAU = XLk*XLk/XNU;
-	if( (1.0/Rate)/dt < 1.0 )
-	{
-         MTS = int(Rate*dt)+1;
-	}
-	else
-	{
-         MTS = 1;
-        }
-	// calculate the rho and velocity
-	GET_RHO_U();
+
 // *********************this part was added by me
 }
 
@@ -330,7 +294,7 @@ int FlameSolver::finishStep()
 
      if (t == 2e-9 )
      {
-	Main_MA();
+	//Main_MA();
 	
 /*	for (int j=0; j<nPoints;j++)
 	{
@@ -348,7 +312,7 @@ int FlameSolver::finishStep()
 
      else if (t > 2e-9 && t<tEnd)
      {      
-         stepcounter= t/(2e-9);
+   /*    stepcounter= t/(2e-9);
          if ( stepcounter%50 ==0)
           {
             int profile=stepcounter/50;
@@ -362,7 +326,7 @@ int FlameSolver::finishStep()
             prof.close();
           }
 
-       
+     */  
      }
      
 
@@ -451,6 +415,55 @@ int FlameSolver::finishStep()
     return 0;
 }
 
+
+void FlameSolver::INIT_ALL() 
+{
+	// init all
+	Config config;
+        ReadParameters(config);
+	dt=config.timestep;
+	NTS  = config.endtime/dt;	
+	DOM = config.dom;
+	NC= nPoints;
+	NCM1=NC-1;
+	NCP1=nPoints+1;
+	DX=DOM/NCM1;
+	XMDT = dt/DX;	
+	GFAC=config.GFAC;
+	NFL=config.FAL;
+	NSIM =config.NofRperR ;
+	NTSPSIM=config.NSPE ;
+	// init LEM
+ 	NTS_COUNT = 0;
+	XNU = config.kinematic_viscosity;
+	Re =  config.Re_t;
+	XLint = config.Intlength;
+	XLk   = XLint/pow(Re,0.75);
+	C_lambda = 15.0 ;
+	Rate = DOM*(54.0/5.0)*( XNU*Re / (C_lambda*pow(XLint,3)) )*( pow((XLint/XLk),(5/3)) - 1)/( 1 - pow((XLk/XLint),(4/3)) );
+	NTS_PE = (1.0/Rate)/dt+1;
+	PDFA = pow(XLint,(5.0/3.0)) * pow(XLk,(-5.0/3.0)) / ( pow((XLint/XLk),(5.0/3.0)) -1.0 );
+        PDFB = -pow(XLint,(5.0/3.0))/(  pow((XLint/XLk),(5.0/3.0)) -1.0 );
+	TAU = XLk*XLk/XNU;
+	if( (1.0/Rate)/dt < 1.0 )
+	{
+         MTS = int(Rate*dt)+1;
+	}
+	else
+	{
+         MTS = 1;
+        }
+        T(nPoints) = T(nPoints-1);
+      for (int kk = 0;kk< nSpec;kk++)
+	{
+         Y(kk,nPoints) = Y(kk,nPoints-1);
+        }
+	// calculate the rho and velocity
+	GET_RHO_U();
+}
+
+
+/*
 void FlameSolver::ReadParameters(Config& config) {
     ifstream fin("config.txt");
     string line;
@@ -538,14 +551,22 @@ void FlameSolver::Debug_MA()
 {
 
         // debug input parameter
-
-	ofstream debug_input ("debug_input.txt");
-        Config config;
-        ReadParameters(config);
-        debug_input << "XLk : "<<XLk << '\n'<< "dt : "<<dt << '\n'<<"NTS : " <<"\t"<<NTS << '\n';
-        debug_input << "DOM : "<<DOM << '\n'<<"NC : "<< NC << '\n'<< "NCM1 : "<<NCM1 << '\n';
-        debug_input <<"NCP1 : "<< NCP1 << '\n'<< "XMDT : "<<XMDT << '\n'<< "GFAC"<<GFAC << '\n';
-        debug_input << "NFL : "<<NFL << '\n'<<"NSIM : " <<NSIM << '\n'<<"NTSPSIM : " <<NTSPSIM << '\n';
+//	DiffusionVelocityCalculator();
+	ofstream debug_input ("debug_YV.txt");
+//        Config config;
+//        ReadParameters(config);
+//        debug_input << "XLk : "<<XLk << '\n'<< "dt : "<<dt << '\n'<<"NTS : " <<"\t"<<NTS << '\n';
+//	for ( int j=0; j<=nPoints;j++)
+//	{
+//		for ( int k=0; k<nSpec; k++)
+//		{
+//			debug_input << "YV :  "<<YV(6,7) << '\n';
+//			debug_input << "YV :  "<<YV(6,7) << '\n';
+//			debug_input << "YV :  "<<YV(6,8) << '\n';
+//			debug_input << "YV :  "<<YV(6,9) << '\n';
+//			debug_input << "YV :  "<<YV(6,10) << '\n';
+//		}
+//	}
         debug_input.close();
 
 
@@ -791,7 +812,68 @@ void FlameSolver::TM()
 	
 }
 
+void FlameSolver::DiffusionVelocityCalculator()
+{
 
+	int j,k,jj;
+	dvec YAV;
+	double TAV,SUM,VC;
+        dmatrix Xmfp;
+        for(j=0; j<nPoints; j++)
+	{
+		TAV = 0.5 * (T(j) + T(j+1));
+		for(k=0;k<nSpec;k++)
+		{
+			YAV(k) = 0.5 * (Y(k,j) + Y(k,j+1));
+		}	
+		
+		thermoTimer.start();
+      		gas.setStateMass(&YAV(0), TAV);
+// it will be calculated in GET_RHO_U
+//              rho[j] = gas.getDensity();
+        	Wmx[j] = gas.getMixtureMolecularWeight();
+		gas.getMoleFractions(&Xmf(0,j));
+	        gas.getDiffusionCoefficientsMole(&Dkm(0,j));
+                thermoTimer.stop();
+		for(jj=0;jj<nPoints-1;jj++)
+		{
+			for(k=0;k<nSpec;k++)
+			{			
+				Xmfp(k,jj) = Xmf(k,jj+1);
+			}
+		}	
+		
+		for(k=0;k<nSpec;k++)
+		{			
+			Xmfp(k,nPoints-1) = Xmf(k,nPoints-1);
+		}
+		
+
+		for(k=0;k<nSpec;k++)
+		{
+                        YV(k,j) = - Dkm(k,j)*(W(k)/Wmx(j))*(Xmfp(k,j)-Xmf(k,j))/DX;
+		}
+
+		SUM = 0.0;
+		for(k=0;k<nSpec;k++)
+		{
+                        SUM = SUM + YV(k,j);
+		}
+                VC = - SUM;
+		for(k=0;k<nSpec;k++)
+		{
+                        YV(k,j) = YV(k,j) + YAV(k)*VC;
+		}
+	}
+	
+	for(k=0;k<nSpec;k++)
+	{
+	YV(k,nPoints) = YV(k,nPoints-1);
+	}
+
+}
+
+*/
 void FlameSolver::finalize()
 {
     calculateQdot();
@@ -906,6 +988,7 @@ void FlameSolver::resizeAuxiliary()
     rhoD.resize(nSpec, nPoints);
     Dkt.resize(nSpec, nPoints);
     wDot.resize(nSpec, nPoints);
+    Dkm.resize(nSpec, nPoints);
     hk.resize(nSpec, nPoints);
     jFick.setZero(nSpec, nPoints);
     jSoret.setZero(nSpec, nPoints);
@@ -1102,7 +1185,7 @@ void FlameSolver::updateChemicalProperties(size_t j1, size_t j2)
         thermoTimer.start();
         gas.setStateMass(&Y(0,j), T(j));
 // it will be calculated in GET_RHO_U
-//        rho[j] = gas.getDensity();
+        rho[j] = gas.getDensity();
         Wmx[j] = gas.getMixtureMolecularWeight();
         cp[j] = gas.getSpecificHeatCapacity();
         gas.getSpecificHeatCapacities(&cpSpec(0,j));
