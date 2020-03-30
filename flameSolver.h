@@ -55,9 +55,11 @@ public:
 	double XLk;
 	double Re;
 	int MTS;
-
+	// random number
 	double random;
+	// eddy size 
 	int L;
+	// starting point of triplet map
 	int M;
 
 

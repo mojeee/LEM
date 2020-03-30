@@ -2,6 +2,8 @@
 #include "scalarFunction.h"
 #include <iostream>
 #include <fstream>
+#include <stdio.h>
+
 using namespace std;
 
 FlameSolver::FlameSolver()
@@ -537,6 +539,160 @@ void FlameSolver::INIT_AllParameters()
 	GET_RHO_U();
 }
 
+
+void FlameSolver::Random_Number()
+{
+	 
+	random=double(rand())/RAND_MAX;
+	 
+}
+
+
+
+void FlameSolver::eddyLength()
+{
+        // generate a random number between 0 and 1
+        Random_Number();
+
+	int NSize;
+        // make sure eddy is Greater than 6 cells long
+        NSize = int(pow((random-PDFA)/PDFB,(-3.0/5.0))/DX);
+
+        while (NSize<5)
+        {
+		Random_Number();
+                NSize = int(pow((random-PDFA)/PDFB,(-3.0/5.0))/DX);
+        	//logFile.write(format("hi moj, the size value   NSize=%i  random=%d") % NSize % random);
+
+	}
+        // make sure eddy size is divisible by 3
+        if((NSize%3)==0)
+        {
+                L=NSize;
+        }
+        else if ((NSize%3)==1)
+        {
+                L=NSize-1;
+        }
+        else if ((NSize%3)==2)
+        {
+                L=NSize+1;
+        }
+
+}
+
+
+
+
+void FlameSolver::BTriplet(double var[])
+{
+        // Permute Cells M through M+L-1 of the array S
+        // as prescribrd by the discrete triplet map , where L is an integer multiple by 3.
+        int Lo,k,j;
+        Lo=int(L/3);
+        double X[L];
+
+        // first part of mapping
+        for(j=1;j<=Lo;j++)
+         {
+                k=M+3*(j-1);
+                X[j]=var[k]; //gather the cells going to the 1st image 
+         }
+
+        // second part of mapping
+        for (j=1;j<=Lo;j++)
+         {
+                k=M+L+1-(3*j); // minus sign because second image is flipped
+                X[j+Lo]=var[k]; // gather the cells going to 2nd image
+         }
+
+        // third part of mapping
+        for (j=1;j<=Lo;j++)
+         {
+                k=M+(3*j)-1;
+                X[j+Lo+Lo]=var[k];// gather the cells going to the 3rd image 
+         }
+
+        for(j=1;j<=L;j++)
+         {
+	        k=M+j-1;
+	        var[k]=X[j];
+         }
+
+}
+
+
+
+
+
+void FlameSolver::TM()
+{
+	// MTS shows number of triplet map require in each realization 
+	// first of all call a random number 
+	double Temp[nPoints];
+        double y_x[nPoints];
+        int j,k;
+	
+	// first of all call a random number
+	Random_Number();
+	
+	// m determine the starting point of triplet map
+	M=int(random*nPoints);
+
+	// this loop check the starting point of triplet map
+	while(M<(NCP1/4))
+       	 {
+		Random_Number();
+		M=int(random*nPoints);
+	 }
+        
+	// calculate the eddy length
+	eddyLength();	
+
+	// check eddy size does not exceed domain
+	if((L+M)>nPoints)
+         {
+		M=nPoints-L;
+	 }
+	
+	while((L+M)>nPoints || M<(NCP1/4))
+	 {
+		Random_Number();
+		M=int(random*nPoints);
+		eddyLength();
+	 }
+		
+	for(j=0;j<nPoints;j++)
+         {
+                Temp[j]=T(j);
+         }
+
+         BTriplet(Temp);
+
+        for(j=0;j<nPoints;j++)
+         {
+                T(j)=Temp[j];
+         }
+
+	for(k=0;k<=nSpec;k++)
+         {
+		for(j=0;j<nPoints;j++)
+  		 {                        
+			y_x[j]=Y(k,j);
+		
+		 }
+		
+		BTriplet(y_x);
+
+		for(j=0;j<nPoints;j++)
+		 {                        
+			Y(k,j)=y_x[j];
+		 }
+	 }
+
+
+	
+}
 
 void FlameSolver::finalize()
 {
