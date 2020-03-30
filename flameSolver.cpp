@@ -1,11 +1,7 @@
 #include "flameSolver.h"
 #include "scalarFunction.h"
-#include "iostream"
-#include <stdio.h>
-#include "fstream"
-#include <sstream>
-#include <string>
-
+#include <iostream>
+#include <fstream>
 using namespace std;
 
 FlameSolver::FlameSolver()
@@ -112,9 +108,6 @@ void FlameSolver::initialize(void)
     tNow = t;
 
     totalTimer.start();
-// *********************this part was added by me
-
-// *********************this part was added by me
 }
 
 void FlameSolver::setupStep()
@@ -205,7 +198,7 @@ void FlameSolver::prepareIntegrators()
     for (size_t j=0; j<nPoints; j++) {
         sourceTerms[j].splitConst = splitConstProd.col(j);
     }
-// need more attention**********************************************************
+
     // Convection terms
     setConvectionSolverState(tNow);
     dmatrix ddt = ddtConv + ddtDiff + ddtProd;
@@ -284,54 +277,30 @@ int FlameSolver::finishStep()
     }
     setupTimer.stop();
 
-//********************************************************************************************************************************************
-//********************************************************************************************************************************************
-//************************************************************* this a big change ************************************************************
-//*************************************************this part use mechanism which reads by ember***********************************************
-//******************************************************** to solve the the LEM problem ******************************************************
-//********************************************************************************************************************************************
-//********************************************************************************************************************************************
 
-     if (t == 2e-9 )
-     {
-	//Main_MA();
-	
-/*	for (int j=0; j<nPoints;j++)
+	if (t==2e-9)
 	{
-        	ofstream debug_MassF ("debug_mass_fraction.txt");
-		for (int j=0; j<nPoints;j++)
+		INIT_AllParameters();
+	}	
+
+	double** YV;
+	YV=DiffusionVelocityCalculator();
+	
+	if (t== 2e-9){
+        ofstream debug_MassF ("debug_mass_fraction.csv");
+	for (int j=0; j<nPoints;j++)
+	{
+        	
+		for (int k=0; k<nSpec;k++)
 		{
 		
-				debug_MassF << T(j) << "\t";
+				debug_MassF << YV[j][k] << "\t";
 		
 		}
-		debug_MassF.close();
 		
-	}*/	
-     }
-
-     else if (t > 2e-9 && t<tEnd)
-     {      
-   /*    stepcounter= t/(2e-9);
-         if ( stepcounter%50 ==0)
-          {
-            int profile=stepcounter/50;
-            string profileString=std::to_string(profile);
-            string pref="result/";
-            string suf=".txt";
-            string filename1= profileString+suf;
-            string filename= pref+filename1;
-            ofstream prof (filename);
-            prof << "step : " << profile << "\n";
-            prof.close();
-          }
-
-     */  
-     }
-     
-
-
-
+	}
+		debug_MassF.close();
+	}
 /*
     if (t > tRegrid || nRegrid >= options.regridStepInterval) {
         if (debugParameters::debugAdapt || debugParameters::debugRegrid) {
@@ -340,8 +309,8 @@ int FlameSolver::finishStep()
         regridTimer.start();
         tRegrid = t + options.regridTimeInterval;
         nRegrid = 0;
-*/
-  /*      // If the left grid point moves, a new boundary value for rVzero
+
+        // If the left grid point moves, a new boundary value for rVzero
         // needs to be calculated from the mass flux V on the current grid points
         dvec x_prev = grid.x;
         convectionSystem.evaluate();
@@ -360,8 +329,8 @@ int FlameSolver::finishStep()
             grid.dampVal[j] = sqrt(num/den);
         }
         dvec dampVal_prev = grid.dampVal;
-*/
-  /*      vector<dvector> currentSolution;
+
+        vector<dvector> currentSolution;
         rollVectorVector(currentSolution, state);
         rollVectorVector(currentSolution, ddtConv);
         rollVectorVector(currentSolution, ddtDiff);
@@ -415,10 +384,123 @@ int FlameSolver::finishStep()
     return 0;
 }
 
+void FlameSolver::ReadParameters(Config& config)
+ {
+    ifstream fin("config.txt");
+    string line;
+    while (getline(fin, line)) {
+        istringstream sin(line.substr(line.find("=") + 1));
+        if (line.find("endtime") != -1)
+            sin >> config.endtime;
+        else if (line.find("timestep") != -1)
+            sin >> config.timestep;
+        else if (line.find("Re_t") != -1)
+            sin >> config.Re_t;
+        else if (line.find("dom") != -1)
+            sin >> config.dom;
+        else if (line.find("pressure") != -1)
+            sin >> config.pressure;// GET_RHO_U
+        else if (line.find("u") != -1)
+            sin >> config.velocity;// GET_RHO_U
+        else if (line.find("T") != -1)
+            sin >> config.Temp; // GET_RHO_U
+        else if (line.find("kinematic_viscosity") != -1)
+            sin >> config.kinematic_viscosity;
+        else if (line.find("D") != -1)
+            sin >> config.D;
+        else if (line.find("lambda") != -1)
+            sin >> config.lambda;
+        else if (line.find("GFAC") != -1)
+            sin >> config.GFAC;
+        else if (line.find("FAL") != -1)
+	    sin >> config.FAL;
+        else if (line.find("Intlength") != -1)
+            sin >> config.Intlength;
+        else if (line.find("NofRperR") != -1)
+            sin >> config.NofRperR;
+        else if (line.find("NSPE") != -1)
+            sin >> config.NSPE;
 
-void FlameSolver::INIT_ALL() 
+    }
+}
+double** FlameSolver::DiffusionVelocityCalculator()
 {
-	// init all
+	int j,k;
+	double SUM,VC;
+        double Xmfp[nSpec][nPoints];
+	double Xmf[nSpec][nPoints];
+		for(j=0;j<nPoints;j++)
+		{
+			for(k=0;k<nSpec;k++)
+			{			
+				Xmf[k][j] = Y(k,j+1)*Wmx(j)/W(k);
+			}
+		}	
+		
+		for(j=0;j<nPoints-1;j++)
+		{
+			for(k=0;k<nSpec;k++)
+			{			
+				Xmfp[k][j] = Xmf[k][j+1];
+			}
+		}
+
+
+		for(k=0;k<nSpec;k++)
+		{			
+			Xmfp[k][nPoints-1] = Xmf[k][nPoints-1];
+		}
+
+	double** YV= new double*[nPoints];
+
+        for(j=0; j<nPoints; j++)
+	{
+
+		YV[j]= new double[nSpec];
+		for(k=0;k<nSpec;k++)
+		{
+                        YV[j][k] = - Dkm(k,j)*(W(k)/Wmx(j))*(Xmfp[k][j]-Xmf[k][j])/DX;
+		}
+
+		SUM = 0.0;
+		for(k=0;k<nSpec;k++)
+		{
+                        SUM = SUM + YV[j][k];
+		}
+                VC = - SUM;
+		for(k=0;k<nSpec;k++)
+		{
+                        YV[j][k] = YV[j][k] + Y(k,j)*VC;
+			
+		}
+	}
+
+	return YV;
+}
+
+void FlameSolver::GET_RHO_U()
+{
+
+	int j;
+	double Temperature,vel;
+        Config config;
+        ReadParameters(config);
+	Temperature= config.Temp;
+	U(nPoints-1)= config.velocity;
+	P =config.pressure;
+        rho(0) = P*Wmx(0)/(8.3144627*Temperature);
+        XMDOT    = rho(0)*U(nPoints-1);
+        for(j = 1;j<nPoints;j++)
+	{
+         rho(j) = P*Wmx(j)/(8.3144627*T(j));
+         U(j)   = XMDOT/rho(j);
+        } 
+
+
+}
+
+void FlameSolver::INIT_AllParameters() 
+{
 	Config config;
         ReadParameters(config);
 	dt=config.timestep;
@@ -433,7 +515,6 @@ void FlameSolver::INIT_ALL()
 	NFL=config.FAL;
 	NSIM =config.NofRperR ;
 	NTSPSIM=config.NSPE ;
-	// init LEM
  	NTS_COUNT = 0;
 	XNU = config.kinematic_viscosity;
 	Re =  config.Re_t;
@@ -453,427 +534,10 @@ void FlameSolver::INIT_ALL()
 	{
          MTS = 1;
         }
-        T(nPoints) = T(nPoints-1);
-      for (int kk = 0;kk< nSpec;kk++)
-	{
-         Y(kk,nPoints) = Y(kk,nPoints-1);
-        }
-	// calculate the rho and velocity
 	GET_RHO_U();
 }
 
 
-/*
-void FlameSolver::ReadParameters(Config& config) {
-    ifstream fin("config.txt");
-    string line;
-    while (getline(fin, line)) {
-        istringstream sin(line.substr(line.find("=") + 1));
-        if (line.find("endtime") != -1)
-            sin >> config.endtime;
-        else if (line.find("timestep") != -1)
-            sin >> config.timestep;
-        else if (line.find("Re_t") != -1)
-            sin >> config.Re_t;
-        else if (line.find("dom") != -1)
-            sin >> config.dom;
-        else if (line.find("pressure") != -1)
-            sin >> config.pressure;
-        else if (line.find("u") != -1)
-            sin >> config.velocity;
-        else if (line.find("T") != -1)
-            sin >> config.Temp;
-        else if (line.find("cp") != -1)
-            sin >> config.cp;
-        else if (line.find("kinematic_viscosity") != -1)
-            sin >> config.kinematic_viscosity;
-        else if (line.find("D") != -1)
-            sin >> config.D;
-        else if (line.find("lambda") != -1)
-            sin >> config.lambda;
-        else if (line.find("r_datas") != -1)
-            sin >> config.r_datas;
-        else if (line.find("trip_map") != -1)
-            sin >> config.trip_map;
-        else if (line.find("w_datas") != -1)
-            sin >> config.w_datas;
-        else if (line.find("ow_init") != -1)
-            sin >> config.ow_init;
-        else if (line.find("f_cor") != -1)
-            sin >> config.f_cor;
-        else if (line.find("t_cor") != -1)
-            sin >> config.t_cor;
-        else if (line.find("GFAC") != -1)
-            sin >> config.GFAC;
-        else if (line.find("FAL") != -1)
-            sin >> config.FAL;
-        else if (line.find("H2") != -1)
-            sin >> config.H2;
-        else if (line.find("H") != -1)
-            sin >> config.H;
-        else if (line.find("O") != -1)
-            sin >> config.O;
-        else if (line.find("oxygen") != -1)
-            sin >> config.oxygen;
-        else if (line.find("hydroxyl") != -1)
-            sin >> config.hydroxyl;
-        else if (line.find("water") != -1)
-            sin >> config.water;
-        else if (line.find("methane") != -1)
-            sin >> config.methane;
-        else if (line.find("cmonooxide") != -1)
-            sin >> config.cmonooxide;
-        else if (line.find("cdioxide") != -1)
-            sin >> config.cdioxide;
-        else if (line.find("N2") != -1)
-            sin >> config.N2;
-        else if (line.find("Intlength") != -1)
-            sin >> config.Intlength;
-        else if (line.find("NofRperR") != -1)
-            sin >> config.NofRperR;
-        else if (line.find("NSPE") != -1)
-            sin >> config.NSPE;
-        else if (line.find("last") != -1)
-            sin >> config.last;
-    }
-}
-
-
-
-void FlameSolver::Main_MA()
-{
-
-Debug_MA();
-
-}
-
-void FlameSolver::Debug_MA()
-{
-
-        // debug input parameter
-//	DiffusionVelocityCalculator();
-	ofstream debug_input ("debug_YV.txt");
-//        Config config;
-//        ReadParameters(config);
-//        debug_input << "XLk : "<<XLk << '\n'<< "dt : "<<dt << '\n'<<"NTS : " <<"\t"<<NTS << '\n';
-//	for ( int j=0; j<=nPoints;j++)
-//	{
-//		for ( int k=0; k<nSpec; k++)
-//		{
-//			debug_input << "YV :  "<<YV(6,7) << '\n';
-//			debug_input << "YV :  "<<YV(6,7) << '\n';
-//			debug_input << "YV :  "<<YV(6,8) << '\n';
-//			debug_input << "YV :  "<<YV(6,9) << '\n';
-//			debug_input << "YV :  "<<YV(6,10) << '\n';
-//		}
-//	}
-        debug_input.close();
-
-
-
-}
-
-void FlameSolver::GET_RHO_U()
-{
-
-	int j;
-        Config config;
-        ReadParameters(config);
-	T(0)= config.Temp;
-	U(0)= config.velocity;
-	P =config.pressure;
-        rho(0) = P*Wmx(0)/(8.3144627*T(0));
-        XMDOT    = rho(0)*U(0);
-        for(j = 1;j<NC;j++)
-	{
-         rho(j) = P*Wmx(j)/(8.3144627*T(j));
-         U(j)   = XMDOT/rho(j);
-        } 
-        rho(NC) = rho(NC-1);
-        U(NC)   = U(NC-1);
-
-}
-
-void FlameSolver::Random_Number()
-{
-	 
-
-
-	random=double(rand())/RAND_MAX;
-	
-	 
-
-}
-
-
-
-void FlameSolver::eddyLength()
-{
-        // generate a random number between 0 and 1
-	// logFile.write("hi moj, i'm here 11 ");
-
-        Random_Number();
-	int NSize;
-        // make sure eddy is Greater than 6 cells long
-        NSize = int(pow((random-PDFA)/PDFB,(-3.0/5.0))/DX);
-	 //logFile.write("hi moj, i'm here 12");
-	
-	//NSize=40;	
-        while (NSize<5)
-        {
-		 //logFile.write("hi moj, i'm here 13");
-		Random_Number();
-                NSize = int(pow((random-PDFA)/PDFB,(-3.0/5.0))/DX);
-        	//logFile.write(format("hi moj, the size value   NSize=%i  random=%d") % NSize % random);
-
-	}
-        // make sure eddy is divisible by 3
-        if((NSize%3)==0)
-        {
-         //logFile.write("hi moj, i'm here 14 ");
-
-                L=NSize;
-        }
-        else if ((NSize%3)==1)
-        {
-		 //logFile.write("hi moj, i'm here 15");
-
-                L=NSize-1;
-        }
-        else if ((NSize%3)==2)
-        {
-		 //logFile.write("hi moj, i'm here 16");
-
-                L=NSize+1;
-        }
-
- //logFile.write(format("hi moj, i'm here 17   L=%i ") % L);
-
-}
-
-
-
-
-void FlameSolver::BTriplet(double var[])
-{
-        // Permute Cells M through M+L-1 of the array S
-        // as prescribrd by the discrete triplet map , where L is an integer multiple by 3.
-        int Lo,k,j;
-        Lo=int(L/3);
-        double X[L];
-
-	 //logFile.write("hi moj, i'm here 26 ");
-
-        // first part of mapping
-        for(j=0;j<Lo;j++)
-        {
-		 //logFile.write("hi moj, i'm here 27 ");
-
-                k=M+3*(j-1);
-                X[j]=var[k]; //gather the cells going to the 1st image 
-        }
-	 //logFile.write("hi moj, i'm here 28 ");
-
-        // second part of mapping
-        for (j=0;j<Lo;j++)
-        {
-		 //logFile.write("hi moj, i'm here 29");
-
-                k=M+L+1-(3*j); // minus sign because second image is flipped
-                X[j+Lo]=var[k]; // gather the cells going to 2nd image
-        }
-
-	 //logFile.write("hi moj, i'm here 30");
-
-        // third part of mapping
-        for (j=0;j<Lo;j++)
-        {
-		 //logFile.write("hi moj, i'm here 31");
-
-                k=M+(3*j)-1;
-                X[j+Lo+Lo]=var[k];// gather the cells going to the 3rd image 
-        }
-		 //logFile.write("hi moj, i'm here 32");
-
-        for(j=0;j<L;j++)
-        {
-	 //logFile.write("hi moj, i'm here 33");
-
-        k=M+j-1;
-        var[k]=X[j];
-        }
-
-	 //logFile.write("hi moj, i'm here 34 ");
-
-}
-
-
-
-
-
-void FlameSolver::TM()
-{
-	// MTS shows number of triplet map require in each realization 
-	// first of all call a random number 
-	// 
-	double Temp[nPoints];
-        double y_x[nPoints];
-        int j,k;
-	 //logFile.write("hi moj, i'm here 2 ");
-
-	
-	
-		 //logFile.write("hi moj, i'm here 3");
-
-		// first of all call a random number
-		Random_Number();
-		 //logFile.write("hi moj, i'm here 6 ");
-
-		// m determine the starting point of triplet map
-		M=int(random*NC);
-		 //logFile.write("hi moj, i'm here 7 ");
-
-// this loop check the starting point of triplet map
-		while(M<(NCP1/4))
-		{
-			 //logFile.write("hi moj, i'm here 8");
-
-			Random_Number();
-			M=int(random*NC);
-			 //logFile.write("hi moj, i'm here 9 ");
-
-		}
-        	// calculate the eddy length
-		 //logFile.write("hi moj, i'm here 10");
-
-		eddyLength();	
-		 //logFile.write("hi moj, i'm here 18 ");
-
-		// check eddy size does not exceed domain
-		if((L+M)>NC)
-		{
-			 //logFile.write("hi moj, i'm here 19");
-
-			M=NC-L;
-		}
-		 //logFile.write("hi moj, i'm here 20");
-
-		while((L+M)>NC || M<(NCP1/4))
-		{
-			 //logFile.write("hi moj, i'm here 21");
-
-			Random_Number();
-			M=int(random*NC);
-			 //logFile.write("hi moj, i'm here 22");
-
-			eddyLength();
-			 //logFile.write("hi moj, i'm here 23 ");
-
-		}
-		
-		//logFile.write(format("hi moj, i'm between 23 and 24 %i  ") % M);
-
-		for(j=0;j<NC;j++)
-                {
-                         //logFile.write("hi moj, i'm here 24 ");
-
-                        Temp[j]=T(j);
-//		 logFile.write(format("Temperature %d.") % Temp[j]);
-
-                }
-
-                 BTriplet(Temp);
-
-                for(j=0;j<NC;j++)
-                {
-                        T(j)=Temp[j];
-			 //logFile.write("hi moj, i'm here 36");
-
-                }
-
-		for(k=0;k<nSpec;k++)
-                {
-			for(j=0;j<NC;j++)
-			{                        
-				y_x[j]=Y(k,j);
-			 	//logFile.write("hi moj, i'm here 36");
-			}
-			
-			BTriplet(y_x);
-
-			for(j=0;j<NC;j++)
-			{                        
-				Y(k,j)=y_x[j];
-			 	//logFile.write("hi moj, i'm here 36");
-			}
-                }
-
-
-	
-}
-
-void FlameSolver::DiffusionVelocityCalculator()
-{
-
-	int j,k,jj;
-	dvec YAV;
-	double TAV,SUM,VC;
-        dmatrix Xmfp;
-        for(j=0; j<nPoints; j++)
-	{
-		TAV = 0.5 * (T(j) + T(j+1));
-		for(k=0;k<nSpec;k++)
-		{
-			YAV(k) = 0.5 * (Y(k,j) + Y(k,j+1));
-		}	
-		
-		thermoTimer.start();
-      		gas.setStateMass(&YAV(0), TAV);
-// it will be calculated in GET_RHO_U
-//              rho[j] = gas.getDensity();
-        	Wmx[j] = gas.getMixtureMolecularWeight();
-		gas.getMoleFractions(&Xmf(0,j));
-	        gas.getDiffusionCoefficientsMole(&Dkm(0,j));
-                thermoTimer.stop();
-		for(jj=0;jj<nPoints-1;jj++)
-		{
-			for(k=0;k<nSpec;k++)
-			{			
-				Xmfp(k,jj) = Xmf(k,jj+1);
-			}
-		}	
-		
-		for(k=0;k<nSpec;k++)
-		{			
-			Xmfp(k,nPoints-1) = Xmf(k,nPoints-1);
-		}
-		
-
-		for(k=0;k<nSpec;k++)
-		{
-                        YV(k,j) = - Dkm(k,j)*(W(k)/Wmx(j))*(Xmfp(k,j)-Xmf(k,j))/DX;
-		}
-
-		SUM = 0.0;
-		for(k=0;k<nSpec;k++)
-		{
-                        SUM = SUM + YV(k,j);
-		}
-                VC = - SUM;
-		for(k=0;k<nSpec;k++)
-		{
-                        YV(k,j) = YV(k,j) + YAV(k)*VC;
-		}
-	}
-	
-	for(k=0;k<nSpec;k++)
-	{
-	YV(k,nPoints) = YV(k,nPoints-1);
-	}
-
-}
-
-*/
 void FlameSolver::finalize()
 {
     calculateQdot();
@@ -987,8 +651,8 @@ void FlameSolver::resizeAuxiliary()
     cpSpec.resize(nSpec, nPoints);
     rhoD.resize(nSpec, nPoints);
     Dkt.resize(nSpec, nPoints);
-    wDot.resize(nSpec, nPoints);
     Dkm.resize(nSpec, nPoints);
+    wDot.resize(nSpec, nPoints);
     hk.resize(nSpec, nPoints);
     jFick.setZero(nSpec, nPoints);
     jSoret.setZero(nSpec, nPoints);
@@ -1184,7 +848,6 @@ void FlameSolver::updateChemicalProperties(size_t j1, size_t j2)
         // Thermodynamic properties
         thermoTimer.start();
         gas.setStateMass(&Y(0,j), T(j));
-// it will be calculated in GET_RHO_U
         rho[j] = gas.getDensity();
         Wmx[j] = gas.getMixtureMolecularWeight();
         cp[j] = gas.getSpecificHeatCapacity();
@@ -1206,6 +869,7 @@ void FlameSolver::updateChemicalProperties(size_t j1, size_t j2)
         diffusivityTimer.start();
         gas.getWeightedDiffusionCoefficientsMass(&rhoD(0,j));
         gas.getThermalDiffusionCoefficients(&Dkt(0,j));
+        gas.getDiffusionCoefficientsMole(&Dkm(0,j));
         diffusivityTimer.stop();
         transportTimer.stop();
     }
@@ -1631,5 +1295,3 @@ void FlameSolver::printPerfString(std::ostream& stats, const std::string& label,
         stats << format("%s %9.3f (%12i)\n") % label % T.getTime() % T.getCallCount();
     }
 }
-
-
