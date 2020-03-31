@@ -280,7 +280,54 @@ int FlameSolver::finishStep()
     setupTimer.stop();
 
 
-	if (t==2e-9)
+//**--------------------------------------- Main Part Of Code -----------------------------------------------
+/*	
+	if (init_flag==1)
+	{
+		loadProfile();
+		updateChemicalProperties();
+		INIT_AllParameters();
+		init_flag=0;
+	}
+
+	Check_flag = t/dt;
+	
+	// PremixADV should be located here ------- PREMIX ADVANCEMENT IN TIME
+
+	if (Check_flag%NTS_PE==0)
+	{
+		TM;
+	}
+	
+	// CFUel function ---  CHECK/ADJUST FUEL FLOW
+
+	
+
+	// check for error in last cell and prepare for print
+	if (Check_flag%NTSPSIM==0 && Print_counter<=NSIM)
+	{
+		check_velocity=XMDOT*(8.3144627*T(nPoints-1))/(P*Wmx(nPoints-1));
+        	if( check_velocity > 2.4 || check_velocity <= 0.0 )
+		 {
+			init_flag=1;
+			error_flag=error_flag+1;	
+        	 }
+		else
+		 {		
+			Print_flag = 1;
+			Print_counter = Print_counter+1;
+		 }
+	}
+
+	// show the error flag value in logfile
+        logFile.write(format("Hi moj, the Error Flag value is :   %i") %error_flag );
+
+	if ( Print_flag == 1 )
+	{
+		XRecord();
+	}
+*/
+/*	if (t==2e-9)
 	{
 		INIT_AllParameters();
 	}	
@@ -303,7 +350,7 @@ int FlameSolver::finishStep()
 	}
 		debug_MassF.close();
 	}
-/*
+
     if (t > tRegrid || nRegrid >= options.regridStepInterval) {
         if (debugParameters::debugAdapt || debugParameters::debugRegrid) {
             writeStateFile("preAdapt", false, false);
@@ -386,6 +433,26 @@ int FlameSolver::finishStep()
     return 0;
 }
 
+
+void FlameSolver::XRecord()
+
+{
+            int profile,j;
+            profile=Print_counter;
+	    string profileString=std::to_string(profile);
+            string pref="result/prof00";
+            string suf=".txt";
+            string filename1= profileString+suf;
+            string filename= pref+filename1;
+            ofstream prof (filename);
+	    prof<< "Temperature profile at time : " << "\t" << t << "\n" ;
+       	    for ( j= 0; j< nPoints; j++)
+        	 {
+			prof<< T(j) << "\n" ;
+         	}
+            prof.close();
+}
+
 void FlameSolver::ReadParameters(Config& config)
  {
     ifstream fin("config.txt");
@@ -401,9 +468,9 @@ void FlameSolver::ReadParameters(Config& config)
         else if (line.find("dom") != -1)
             sin >> config.dom;
         else if (line.find("pressure") != -1)
-            sin >> config.pressure;// GET_RHO_U
+            sin >> config.pressure;
         else if (line.find("u") != -1)
-            sin >> config.velocity;// GET_RHO_U
+            sin >> config.velocity;
         else if (line.find("T") != -1)
             sin >> config.Temp; // GET_RHO_U
         else if (line.find("kinematic_viscosity") != -1)
@@ -480,31 +547,11 @@ double** FlameSolver::DiffusionVelocityCalculator()
 	return YV;
 }
 
-void FlameSolver::GET_RHO_U()
-{
-
-	int j;
-	double Temperature,vel;
-        Config config;
-        ReadParameters(config);
-	Temperature= config.Temp;
-	U(nPoints-1)= config.velocity;
-	P =config.pressure;
-        rho(0) = P*Wmx(0)/(8.3144627*Temperature);
-        XMDOT    = rho(0)*U(nPoints-1);
-        for(j = 1;j<nPoints;j++)
-	{
-         rho(j) = P*Wmx(j)/(8.3144627*T(j));
-         U(j)   = XMDOT/rho(j);
-        } 
-
-
-}
-
 void FlameSolver::INIT_AllParameters() 
 {
 	Config config;
         ReadParameters(config);
+	double Temperature,U_velocity,density;
 	dt=config.timestep;
 	NTS  = config.endtime/dt;	
 	DOM = config.dom;
@@ -518,6 +565,11 @@ void FlameSolver::INIT_AllParameters()
 	NSIM =config.NofRperR ;
 	NTSPSIM=config.NSPE ;
  	NTS_COUNT = 0;
+	Temperature= config.Temp;
+	U_velocity= config.velocity;
+	P =config.pressure;
+        density = P*Wmx(nPoints-1)/(8.3144627*Temperature);
+        XMDOT    = density*U_velocity;
 	XNU = config.kinematic_viscosity;
 	Re =  config.Re_t;
 	XLint = config.Intlength;
@@ -536,7 +588,7 @@ void FlameSolver::INIT_AllParameters()
 	{
          MTS = 1;
         }
-	GET_RHO_U();
+	
 }
 
 
@@ -692,6 +744,92 @@ void FlameSolver::TM()
 
 
 	
+}
+
+
+void FlameSolver::PREMIXADV()
+{
+	dmatrix F;	
+	double RHOM,RHOP,SUMYK,SUMX,TDOT,XMDXM;
+	int k,j,kk,jj;
+        //EVALUATE AND STORE THE DIFFUSION VELOCITIES
+	double** YV;
+	YV=DiffusionVelocityCalculator();
+
+
+
+      //----------------------INTERIOR MESH POINTS-----------------------------
+
+      //INTERIOR CELLS
+      for( j = 1;j<nPoints;j++)
+	{
+               	
+	        for (k = 0; k<nSpec; k++)
+		{
+	        	wDot(k,j) = wDot(k,j)*GFAC;
+		}
+
+		//-------------------------------SPECIES CONSERVATION EQUATION--------------------------------
+
+	        SUMYK = 0.0;
+		
+		// set rho
+		RHOP= rho(j);
+		RHOM=rho(j-1);
+
+		// XMDOT is set in SetIC
+	        XMDXM = XMDOT / DX;
+	        	for (k = 0; k<nSpec;k++)
+	        	{
+	           		SUMYK = SUMYK + Y(j,k);
+				//species molecular weights === XMWT
+	           		F(3+k,j) = XMDXM * ( Y(k,j)-Y(k,j-1) )*0.0;// convection term set to zero
+				F(3+k,j) = F(3+k,j) + (RHOP*YV[j][k] - RHOM*YV[j-1][k])/DX;
+				F(3+k,j) = F(3+k,j) - wDot(k,j)*W(k);
+				F(3+k,j) = - dt*F(3+k,j)/((RHOP + RHOM)/2.0);
+	        	}
+
+                //-------------------------------ENERGY EQUATION-----------------------------------------------
+
+	        SUMX = 0.0;
+	        TDOT = 0.0;
+
+	        for (k = 0; k<nSpec;k++)
+		{
+			TDOT = TDOT + wDot(k,j)*hk(k,j);
+			SUMX = SUMX + 0.25 * (RHOP*YV[j][k] + RHOM*YV[j-1][k]) *cpSpec(k,j)*(T(j+1)-T(j-1))/DX;
+		}
+
+	        F(3,j) = (XMDOT*(T(j)-T(j-1))/DX)*0.0;// convection term set to zero
+		if ( j == ( nPoints - 1 ) )
+		 {
+			F(3,j) = F(3,j) +(lambda(j-1)*(T(j)-T(j-1))/DX)/(cp(j)*DX);
+		 }
+		else
+		 {
+			F(3,j) = F(3,j) -(lambda(j)*(T(j+1)-T(j))/DX-lambda(j-1)*(T(j)-T(j-1))/DX)/(cp(j)*DX);
+		 }		
+		F(3,j) = F(3,j) +(SUMX+TDOT)/cp(j);
+		F(3,j) = - dt*F(3,j)/((RHOP+ RHOM)/2.0);
+
+	}
+
+	//----------------------- UPDATE ARRAYS --------------------------
+
+	for (j = 1;j<nPoints;j++)
+	 {
+      		T(j) = T(j) + F(3,j);
+
+      		for(k = 0;k<nSpec;k++)
+	 	 {
+      			Y(k,j) = Y(k,j) + F(3+k,j);
+			if(Y(k,j)< 0.0 ) 
+			 {
+				Y(k,j) = 0.0;
+			 }
+	         }
+         }
+
 }
 
 void FlameSolver::finalize()

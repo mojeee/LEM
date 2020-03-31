@@ -61,29 +61,36 @@ public:
 	int L;
 	// starting point of triplet map
 	int M;
-
+	int init_flag=1;
+	int Check_flag;
+	int Print_flag=0;
+	double Print_counter = 0;
+	int error_flag=0;
+	double check_velocity;
 
 	struct Config 
 	{
-    	double endtime;
-    	double timestep;
-	double Re_t;
-    	double dom;// cm
-    	double pressure; // dynes/cm2
-    	double velocity; // cm/s
-    	double Temp; // K
-    	double cp; // erg/g-K
-    	double kinematic_viscosity; // cm2/s
-    	double D,lambda,r_datas,trip_map,GFAC,FAL,Intlength,NofRperR,NSPE;
+    		double endtime;
+    		double timestep;
+		double Re_t;
+    		double dom;// cm
+    		double pressure; // dynes/cm2
+    		double velocity; // cm/s
+    		double Temp; // K
+    		double cp; // erg/g-K
+    		double kinematic_viscosity; // cm2/s
+    		double D,lambda,r_datas,trip_map,GFAC,FAL,Intlength,NofRperR,NSPE;
 	};
+
 	void ReadParameters(Config& config);
 	void INIT_AllParameters();
-	void GET_RHO_U();
 	double** DiffusionVelocityCalculator();
 	void Random_Number();
 	void eddyLength();
 	void BTriplet(double var[]);
         void TM();
+	void XRecord();
+	void PREMIXADV();
 void setOptions(const ConfigOptions& options); //!< Set options read from the configuration file
     void initialize(); //!< call to generate profiles and perform one-time setup
     void finalize();
