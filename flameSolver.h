@@ -35,12 +35,13 @@ public:
 	int GFAC;
 	double PDFA;
 	double PDFB;
-	double dt;
+	//double dt;
 	int NTS;
 	double NFL;
 	int NSIM;
+	int NSIM_counter=1;
 	int NTSPSIM;
-	int NTS_COUNT;
+	int NTS_COUNT=1;
 	double XNU;
 	double DOM;
 	double C_lambda;
@@ -90,7 +91,7 @@ public:
 	void BTriplet(double var[]);
         void TM();
 	void XRecord();
-	void PREMIXADV();
+	void PREMIXADV(double **YV);
 void setOptions(const ConfigOptions& options); //!< Set options read from the configuration file
     void initialize(); //!< call to generate profiles and perform one-time setup
     void finalize();

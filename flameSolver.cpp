@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <stdio.h>
+#include <cstdlib>
 
 using namespace std;
 
@@ -281,17 +282,136 @@ int FlameSolver::finishStep()
 
 
 //**--------------------------------------- Main Part Of Code -----------------------------------------------
-/*	
-	if (init_flag==1)
+
+	double F[nSpec][nPoints];
+	double FE[nPoints];	
+	double RHOM,RHOP,SUMYK,SUMX,TDOT,XMDXM;
+	int k,j,kk;
+
+	INIT_AllParameters();
+	for(NSIM_counter=1;NSIM_counter <= NSIM;NSIM_counter++)
 	{
-		loadProfile();
-		updateChemicalProperties();
-		INIT_AllParameters();
-		init_flag=0;
+		if (init_flag==1)
+		 {
+			loadProfile();
+			updateChemicalProperties();
+			INIT_AllParameters();
+			init_flag=0;
+		 }
+	// write in logfile
+        logFile.write(format("Hi moj, the %ith loop for saving profile ") %NSIM_counter );
+
+		for (int jj=1;jj<=NTSPSIM;jj++)
+		{	
+			
+			// update the chemical properties of domain before PREMIXADV
+			updateChemicalProperties();			
+			
+			double** YVelocity;
+			YVelocity=DiffusionVelocityCalculator();
+			logFile.write(format("Hi moj, the counter number in the loop for solving flame is : %i ") %jj );
+			// PREMIXADV should be located here ------- PREMIX ADVANCEMENT IN TIME
+
+// PREMIXADV FUNCTION -----------------------------------------------------------------------------------
+
+
+
+
+//----------------------INTERIOR MESH POINTS-----------------------------
+
+      //INTERIOR CELLS
+      for( j = 1;j<nPoints;j++)
+	{
+               	
+	        for (k = 0; k<nSpec; k++)
+		{
+	        	wDot(k,j) = wDot(k,j)*GFAC;
+		}
+
+		//-------------------------------SPECIES CONSERVATION EQUATION--------------------------------
+
+	        SUMYK = 0.0;
+		
+		// set rho
+		RHOP= rho(j);
+		RHOM=rho(j-1);
+
+		// XMDOT is set in SetIC
+	        XMDXM = XMDOT / DX;
+	        	for (k = 0; k<nSpec;k++)
+	        	{
+	           		SUMYK = SUMYK + Y(j,k);
+				//species molecular weights === XMWT
+	           		F[k][j] = XMDXM * ( Y(k,j)-Y(k,j-1) )*0.0;// convection term set to zero
+				F[k][j] = F[k][j] + (RHOP*YVelocity[j][k] - RHOM*YVelocity[j-1][k])/DX;
+				F[k][j] = F[k][j] - wDot(k,j)*W(k);
+				F[k][j] = - dt*F[k][j]/((RHOP + RHOM)/2.0);
+	        	}
+
+                //-------------------------------ENERGY EQUATION-----------------------------------------------
+
+	        SUMX = 0.0;
+	        TDOT = 0.0;
+
+	        for (k = 0; k<nSpec;k++)
+		{
+			TDOT = TDOT + wDot(k,j)*hk(k,j);
+			SUMX = SUMX + 0.25 * (RHOP*YVelocity[j][k] + RHOM*YVelocity[j-1][k]) *cpSpec(k,j)*(T(j+1)-T(j-1))/DX;
+		}
+		
+
+
+	        FE[j] = (XMDOT*(T(j)-T(j-1))/DX)*0.0;// convection term set to zero
+		if ( j == ( nPoints - 1 ) )
+		 {
+			FE[j] = FE[j] +(lambda(j-1)*(T(j)-T(j-1))/DX)/(cp(j)*DX);
+		 }
+		else
+		 {
+			FE[j] = FE[j] -(lambda(j)*(T(j+1)-T(j))/DX-lambda(j-1)*(T(j)-T(j-1))/DX)/(cp(j)*DX);
+		 }		
+		FE[j] = FE[j] +(SUMX+TDOT)/cp(j);
+		FE[j] = - dt*FE[j]/((RHOP+ RHOM)/2.0);
+
 	}
 
-	Check_flag = t/dt;
-	
+	free(YVelocity);
+	//----------------------- UPDATE ARRAYS --------------------------
+
+	for (j = 1;j<nPoints;j++)
+	 {
+      		T(j) = T(j) + FE[j];
+
+      		for(k = 0;k<nSpec;k++)
+	 	 {
+      			Y(k,j) = Y(k,j) + F[k][j];
+			if(Y(k,j)< 0.0 ) 
+			 {
+				Y(k,j) = 0.0;
+			 }
+	         }
+         }
+
+
+// PREMIXADV FUNCTION -----------------------------------------------------------------------------------
+
+			
+			// triplet map			
+			if (NTS_COUNT%NTS_PE == 0)
+			{
+				TM();
+				logFile.write(format("Hi moj, tripletmap is done ."));
+			}
+			
+			//CHECK/ADJUST FUEL FLOW CFUEL Function			
+			
+			// tripletmap counter
+			logFile.write(format("Hi moj, the triplet map counter is : %i ") %NTS_COUNT );
+			NTS_COUNT=NTS_COUNT+1;
+		}
+		
+	}
+/*	
 	// PremixADV should be located here ------- PREMIX ADVANCEMENT IN TIME
 
 	if (Check_flag%NTS_PE==0)
@@ -475,10 +595,6 @@ void FlameSolver::ReadParameters(Config& config)
             sin >> config.Temp; // GET_RHO_U
         else if (line.find("kinematic_viscosity") != -1)
             sin >> config.kinematic_viscosity;
-        else if (line.find("D") != -1)
-            sin >> config.D;
-        else if (line.find("lambda") != -1)
-            sin >> config.lambda;
         else if (line.find("GFAC") != -1)
             sin >> config.GFAC;
         else if (line.find("FAL") != -1)
@@ -747,16 +863,15 @@ void FlameSolver::TM()
 }
 
 
-void FlameSolver::PREMIXADV()
+void FlameSolver::PREMIXADV(double **YV)
 {
 	dmatrix F;	
 	double RHOM,RHOP,SUMYK,SUMX,TDOT,XMDXM;
 	int k,j,kk,jj;
         //EVALUATE AND STORE THE DIFFUSION VELOCITIES
-	double** YV;
-	YV=DiffusionVelocityCalculator();
 
-
+			//double** YV;
+			//YV=DiffusionVelocityCalculator();
 
       //----------------------INTERIOR MESH POINTS-----------------------------
 
