@@ -66,7 +66,7 @@ void FlameSolver::initialize(void)
 
     // Get Initial Conditions
     loadProfile();
-
+	
     grid.setSize(x.size());
     convectionSystem.setGas(gas);
     convectionSystem.setLeftBC(Tleft, Yleft);
@@ -89,7 +89,7 @@ void FlameSolver::initialize(void)
     ddtConv.setZero();
     ddtDiff.setZero();
     ddtProd.setZero();
-
+logFile.write(format("Hi moj 4444444444444444444444444444444444444444444444444"));
     updateChemicalProperties();
     calculateQdot();
 
@@ -142,14 +142,14 @@ void FlameSolver::setupStep()
         T(jj) = Tright;
         Y.col(jj) = Yright;
     }
-
+    logFile.write(format("Hi moj 3333333333333333333333333333333333333333333333333333"));
     updateChemicalProperties();
 
     updateBC();
     if (options.xFlameControl) {
         update_xStag(t, true); // calculate the value of rVzero
     }
-    convectionSystem.set_rVzero(rVzero);
+    //convectionSystem.set_rVzero(rVzero);
     setupTimer.stop();
 
     // Set up solvers for split integration
@@ -204,7 +204,7 @@ void FlameSolver::prepareIntegrators()
 
     // Convection terms
     setConvectionSolverState(tNow);
-    dmatrix ddt = ddtConv + ddtDiff + ddtProd;
+    dmatrix ddt = ddtConv*0.0 + ddtDiff*0.0 + ddtProd;
     if (options.splittingMethod == "balanced") {
         ddt += ddtCross;
     }
@@ -213,9 +213,9 @@ void FlameSolver::prepareIntegrators()
     drhodt = - rho * (ddt.row(kEnergy).transpose() / T + tmp * Wmx);
 
     assert(mathUtils::notnan(drhodt));
-    convectionSystem.setDensityDerivative(drhodt);
-    convectionSystem.setSplitConstants(splitConstConv);
-    convectionSystem.updateContinuityBoundaryCondition(qDot, options.continuityBC);
+    //convectionSystem.setDensityDerivative(drhodt);
+    //convectionSystem.setSplitConstants(splitConstConv);
+    //convectionSystem.updateContinuityBoundaryCondition(qDot, options.continuityBC);
     splitTimer.stop();
 }
 
@@ -261,60 +261,30 @@ int FlameSolver::finishStep()
         }
     }
 
-    // Save the current integral and profile data in files that are
-    // automatically overwritten, and save the time-series data (out.h5)
-    if (nCurrentState >= options.currentStateStepInterval) {
-        calculateQdot();
-        nCurrentState = 0;
-        saveTimeSeriesData("out", true);
-        writeStateFile("profNow");
-    }
 
-    // *** Save flame profiles
-    if (t + 0.5 * dt > tProfile || nProfile >= options.profileStepInterval) {
-        if (options.outputProfiles) {
-            writeStateFile();
-        }
-        tProfile = t + options.profileTimeInterval;
-        nProfile = 0;
-    }
-    setupTimer.stop();
 
 
 //**--------------------------------------- Main Part Of Code -----------------------------------------------
 
-	double F[nSpec][nPoints];
-	double FE[nPoints];	
-	double RHOM,RHOP,SUMYK,SUMX,TDOT,XMDXM;
-	int k,j,kk;
-
-	INIT_AllParameters();
-	for(NSIM_counter=1;NSIM_counter <= NSIM;NSIM_counter++)
+	if (init_flag==1)
 	{
-		if (init_flag==1)
-		 {
-			loadProfile();
-			updateChemicalProperties();
-			INIT_AllParameters();
-			init_flag=0;
-		 }
-	// write in logfile
-        logFile.write(format("Hi moj, the %ith loop for saving profile ") %NSIM_counter );
+		INIT_AllParameters();
 
-		for (int jj=1;jj<=NTSPSIM;jj++)
-		{	
+		init_flag=0;
+	}
 			
-			// update the chemical properties of domain before PREMIXADV
-			updateChemicalProperties();			
-			
-			double** YVelocity;
-			YVelocity=DiffusionVelocityCalculator();
-			logFile.write(format("Hi moj, the counter number in the loop for solving flame is : %i ") %jj );
+		double* F = new double[nPoints * nSpec];
+		double* FE = new double[nPoints];
+		double RHOM,RHOP,SUMYK,SUMX,TDOT,XMDXM;
+		int k,j,kk;
+	logFile.write(format("Hi moj 111111111111111111111111111111111111111111111111111111"));
+	updateChemicalProperties();
+	double** YVelocity;
+	YVelocity=DiffusionVelocityCalculator();
+	logFile.write(format("Hi moj, the counter number in the loop for solving flame is : %i ") %Check_flag );
 			// PREMIXADV should be located here ------- PREMIX ADVANCEMENT IN TIME
 
 // PREMIXADV FUNCTION -----------------------------------------------------------------------------------
-
-
 
 
 //----------------------INTERIOR MESH POINTS-----------------------------
@@ -327,7 +297,6 @@ int FlameSolver::finishStep()
 		{
 	        	wDot(k,j) = wDot(k,j)*GFAC;
 		}
-
 		//-------------------------------SPECIES CONSERVATION EQUATION--------------------------------
 
 	        SUMYK = 0.0;
@@ -342,16 +311,46 @@ int FlameSolver::finishStep()
 	        	{
 	           		SUMYK = SUMYK + Y(j,k);
 				//species molecular weights === XMWT
-	           		F[k][j] = XMDXM * ( Y(k,j)-Y(k,j-1) )*0.0;// convection term set to zero
-				F[k][j] = F[k][j] + (RHOP*YVelocity[j][k] - RHOM*YVelocity[j-1][k])/DX;
-				F[k][j] = F[k][j] - wDot(k,j)*W(k);
-				F[k][j] = - dt*F[k][j]/((RHOP + RHOM)/2.0);
+	           		*(F + j*nSpec + k) = XMDXM * ( Y(k,j)-Y(k,j-1) )*0.0;// convection term set to zero
+				*(F + j*nSpec + k) = *(F + j*nSpec + k) + (RHOP*YVelocity[j][k] - RHOM*YVelocity[j-1][k])/DX;
+				*(F + j*nSpec + k) = *(F + j*nSpec + k) - wDot(k,j)*W(k);
+				*(F + j*nSpec + k) = - dt*( *(F + j*nSpec + k) )/((RHOP + RHOM)/2.0);
 	        	}
 
-                //-------------------------------ENERGY EQUATION-----------------------------------------------
 
-	        SUMX = 0.0;
+
+	}
+
+
+	for (j = 1;j<nPoints;j++)
+	 {
+      		for(k = 0;k<nSpec;k++)
+	 	 {
+      			Y(k,j) = Y(k,j) + *(F + j*nSpec + k);
+			if(Y(k,j)< 0.0 ) 
+			 {
+				Y(k,j) = 0.0;
+			 }
+	         }
+         }
+
+
+	delete[] F;
+
+                //-------------------------------ENERGY EQUATION-----------------------------------------------
+	for( j = 1;j<nPoints;j++)
+	{
+	       	for (k = 0; k<nSpec; k++)
+		{
+	        	wDot(k,j) = wDot(k,j)*GFAC;
+		}
+
+		SUMX = 0.0;
 	        TDOT = 0.0;
+
+		// set rho
+		RHOP= rho(j);
+		RHOM=rho(j-1);
 
 	        for (k = 0; k<nSpec;k++)
 		{
@@ -375,31 +374,56 @@ int FlameSolver::finishStep()
 
 	}
 
-	free(YVelocity);
+	
 	//----------------------- UPDATE ARRAYS --------------------------
 
 	for (j = 1;j<nPoints;j++)
 	 {
       		T(j) = T(j) + FE[j];
 
-      		for(k = 0;k<nSpec;k++)
-	 	 {
-      			Y(k,j) = Y(k,j) + F[k][j];
-			if(Y(k,j)< 0.0 ) 
-			 {
-				Y(k,j) = 0.0;
-			 }
-	         }
          }
 
+	delete[] FE;
+	delete[] YVelocity;
+	
+	 logFile.write(format("Hi moj, the NTS_PE is : %i ") %NTS_PE);
 
+	if (Check_flag%200==0)
+		{
+			TM();
+		}
+
+	if (Check_flag%NTSPSIM==0 && NSIM_counter<=NSIM)
+	{
+		check_velocity=XMDOT*(8.3144627*T(nPoints-1))/(P*Wmx(nPoints-1));
+        	if( check_velocity > 2.4 || check_velocity <= 0.0 )
+		 {
+			init_flag=1;
+			error_flag=error_flag+1;	
+        	 }
+		else
+		 {		
+			Print_flag = 1;
+			NSIM_counter=NSIM_counter+1;
+		 }
+	}
+	
+	Check_flag=Check_flag+1;
+
+
+
+
+
+
+
+/*
 // PREMIXADV FUNCTION -----------------------------------------------------------------------------------
 
 			
 			// triplet map			
 			if (NTS_COUNT%NTS_PE == 0)
 			{
-				TM();
+				
 				logFile.write(format("Hi moj, tripletmap is done ."));
 			}
 			
@@ -411,13 +435,11 @@ int FlameSolver::finishStep()
 		}
 		
 	}
+*/
 /*	
 	// PremixADV should be located here ------- PREMIX ADVANCEMENT IN TIME
 
-	if (Check_flag%NTS_PE==0)
-	{
-		TM;
-	}
+	
 	
 	// CFUel function ---  CHECK/ADJUST FUEL FLOW
 
@@ -546,6 +568,26 @@ int FlameSolver::finishStep()
         regridTimer.stop();
     }
 */
+
+    // Save the current integral and profile data in files that are
+    // automatically overwritten, and save the time-series data (out.h5)
+    if (nCurrentState >= options.currentStateStepInterval) {
+        calculateQdot();
+        nCurrentState = 0;
+        saveTimeSeriesData("out", true);
+        writeStateFile("profNow");
+    }
+
+    // *** Save flame profiles
+    if (t + 0.5 * dt > tProfile || nProfile >= options.profileStepInterval) {
+        if (options.outputProfiles) {
+            writeStateFile();
+        }
+        tProfile = t + options.profileTimeInterval;
+        nProfile = 0;
+    }
+    
+setupTimer.stop();
     if (nTotal % 10 == 0) {
         printPerformanceStats();
     }
@@ -612,29 +654,23 @@ double** FlameSolver::DiffusionVelocityCalculator()
 {
 	int j,k;
 	double SUM,VC;
-        double Xmfp[nSpec][nPoints];
-	double Xmf[nSpec][nPoints];
-		for(j=0;j<nPoints;j++)
-		{
-			for(k=0;k<nSpec;k++)
-			{			
-				Xmf[k][j] = Y(k,j+1)*Wmx(j)/W(k);
-			}
-		}	
+        double Yp[nSpec][nPoints];
+
 		
 		for(j=0;j<nPoints-1;j++)
 		{
 			for(k=0;k<nSpec;k++)
 			{			
-				Xmfp[k][j] = Xmf[k][j+1];
+				Yp[k][j] = Y(k,j+1);
 			}
 		}
 
 
 		for(k=0;k<nSpec;k++)
 		{			
-			Xmfp[k][nPoints-1] = Xmf[k][nPoints-1];
+			Yp[k][nPoints-1] = Y(k,nPoints-1);
 		}
+
 
 	double** YV= new double*[nPoints];
 
@@ -644,7 +680,7 @@ double** FlameSolver::DiffusionVelocityCalculator()
 		YV[j]= new double[nSpec];
 		for(k=0;k<nSpec;k++)
 		{
-                        YV[j][k] = - Dkm(k,j)*(W(k)/Wmx(j))*(Xmfp[k][j]-Xmf[k][j])/DX;
+                        YV[j][k] = - Dkm(k,j)*(Yp[k][j]-Y(k,j))/DX;
 		}
 
 		SUM = 0.0;
@@ -659,7 +695,15 @@ double** FlameSolver::DiffusionVelocityCalculator()
 			
 		}
 	}
-
+	
+	if(t==2e-9){
+        ofstream proof ("diff_velocity.txt");
+	    
+       	    for ( k= 0; k< nPoints; k++)
+        	{
+			proof<< YV[k][9] << "\n" ;
+         	}
+            proof.close();}
 	return YV;
 }
 
@@ -691,7 +735,7 @@ void FlameSolver::INIT_AllParameters()
 	XLint = config.Intlength;
 	XLk   = XLint/pow(Re,0.75);
 	C_lambda = 15.0 ;
-	Rate = DOM*(54.0/5.0)*( XNU*Re / (C_lambda*pow(XLint,3)) )*( pow((XLint/XLk),(5/3)) - 1)/( 1 - pow((XLk/XLint),(4/3)) );
+	Rate = DOM*100*(54.0/5.0)*( XNU*Re / (C_lambda*pow(XLint,3)) )*( pow((XLint/XLk),(5/3)) - 1)/( 1 - pow((XLk/XLint),(4/3)) );
 	NTS_PE = (1.0/Rate)/dt+1;
 	PDFA = pow(XLint,(5.0/3.0)) * pow(XLk,(-5.0/3.0)) / ( pow((XLint/XLk),(5.0/3.0)) -1.0 );
         PDFB = -pow(XLint,(5.0/3.0))/(  pow((XLint/XLk),(5.0/3.0)) -1.0 );
@@ -1020,8 +1064,9 @@ void FlameSolver::writeStateFile
 {
     if (stateWriter) {
         if (updateDerivatives) {
+		logFile.write(format("Hi moj 55555555555555555555555555555555555555555555555555"));
             updateChemicalProperties();
-            convectionSystem.evaluate();
+            //convectionSystem.evaluate();
         }
         stateWriter->eval(fileNameStr, errorFile);
     }
@@ -1112,8 +1157,8 @@ void FlameSolver::resizeAuxiliary()
     convectionSystem.resize(nPoints, nSpec, state);
     convectionSystem.setLeftBC(Tleft, Yleft);
 
-    convectionSystem.utwSystem.setStrainFunction(strainfunc);
-    convectionSystem.utwSystem.setRhou(rhou);
+   // convectionSystem.utwSystem.setStrainFunction(strainfunc);
+    //convectionSystem.utwSystem.setRhou(rhou);
 
     if (options.quasi2d) {
         convectionSystem.setupQuasi2D(vzInterp, vrInterp);
@@ -1240,6 +1285,7 @@ void FlameSolver::updateBC()
 
 void FlameSolver::updateChemicalProperties()
 {
+	logFile.write(format("Hi moj 66666666666666666666666666666666666666666666666"));
     tbb::parallel_for(tbb::blocked_range<size_t>(0, nPoints,1),
                       TbbWrapper<FlameSolver>(&FlameSolver::updateChemicalProperties, this));
 }
@@ -1251,12 +1297,13 @@ void FlameSolver::updateChemicalProperties(size_t j1, size_t j2)
         gas.setOptions(options);
         gas.initialize();
     }
-
+logFile.write(format("Hi moj 2"));
     // Calculate auxiliary data
     for (size_t j=j1; j<j2; j++) {
         // Thermodynamic properties
         thermoTimer.start();
         gas.setStateMass(&Y(0,j), T(j));
+	
         rho[j] = gas.getDensity();
         Wmx[j] = gas.getMixtureMolecularWeight();
         cp[j] = gas.getSpecificHeatCapacity();
@@ -1282,6 +1329,7 @@ void FlameSolver::updateChemicalProperties(size_t j1, size_t j2)
         diffusivityTimer.stop();
         transportTimer.stop();
     }
+logFile.write(format("Hi moj 22222222222222222222222222222222222"));
 }
 
 
@@ -1306,7 +1354,7 @@ void FlameSolver::setDiffusionSolverState(double tInitial)
 void FlameSolver::setConvectionSolverState(double tInitial)
 {
     splitTimer.resume();
-    convectionSystem.setState(tInitial);
+ //   convectionSystem.setState(tInitial);
     splitTimer.stop();
 }
 
@@ -1321,7 +1369,7 @@ void FlameSolver::setProductionSolverState(double tInitial)
 
 void FlameSolver::integrateConvectionTerms()
 {
-    setConvectionSolverState(tStageStart);
+   /* setConvectionSolverState(tStageStart);
     convectionTimer.start();
     try {
         convectionSystem.integrateToTime(tStageEnd);
@@ -1334,7 +1382,7 @@ void FlameSolver::integrateConvectionTerms()
 
     splitTimer.resume();
     convectionSystem.unroll_y();
-    splitTimer.stop();
+    splitTimer.stop();*/
 }
 
 void FlameSolver::integrateProductionTerms()
@@ -1567,9 +1615,9 @@ void FlameSolver::loadProfile(void)
     } else {
         Y = options.Y_initial;
     }
-    convectionSystem.V = options.V_initial;
-    convectionSystem.utwSystem.V = options.V_initial;
-    rVzero = convectionSystem.utwSystem.V[0];
+    //convectionSystem.V = options.V_initial;
+   // convectionSystem.utwSystem.V = options.V_initial;
+    //rVzero = convectionSystem.utwSystem.V[0];
 
     grid.setSize(x.size());
     grid.updateValues();

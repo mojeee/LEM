@@ -49,6 +49,7 @@ public:
 	int NTS_PE;
 	int NC;
 	int NCM1;
+						int print_counter=0;
 	int NCP1;
 	double DX;
 	double TAU;
@@ -63,7 +64,7 @@ public:
 	// starting point of triplet map
 	int M;
 	int init_flag=1;
-	int Check_flag;
+	int Check_flag=1;
 	int Print_flag=0;
 	double Print_counter = 0;
 	int error_flag=0;
