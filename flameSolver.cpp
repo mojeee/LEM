@@ -271,122 +271,24 @@ int FlameSolver::finishStep()
 		INIT_AllParameters();
 
 		init_flag=0;
-	}
-			
-		double* F = new double[nPoints * nSpec];
-		double* FE = new double[nPoints];
-		double RHOM,RHOP,SUMYK,SUMX,TDOT,XMDXM;
-		int k,j,kk;
-	logFile.write(format("Hi moj 111111111111111111111111111111111111111111111111111111"));
+	}	
+
+	int k,j,kk;
+
+//	logFile.write(format("Hi moj 111111111111111111111111111111111111111111111111111111"));
 	updateChemicalProperties();
-	double** YVelocity;
-	YVelocity=DiffusionVelocityCalculator();
+	
+	DiffusionVelocityCalculator();
+	
 	logFile.write(format("Hi moj, the counter number in the loop for solving flame is : %i ") %Check_flag );
 			// PREMIXADV should be located here ------- PREMIX ADVANCEMENT IN TIME
 
 // PREMIXADV FUNCTION -----------------------------------------------------------------------------------
 
-
-//----------------------INTERIOR MESH POINTS-----------------------------
-
-      //INTERIOR CELLS
-      for( j = 1;j<nPoints;j++)
-	{
-               	
-	        for (k = 0; k<nSpec; k++)
-		{
-	        	wDot(k,j) = wDot(k,j)*GFAC;
-		}
-		//-------------------------------SPECIES CONSERVATION EQUATION--------------------------------
-
-	        SUMYK = 0.0;
-		
-		// set rho
-		RHOP= rho(j);
-		RHOM=rho(j-1);
-
-		// XMDOT is set in SetIC
-	        XMDXM = XMDOT / DX;
-	        	for (k = 0; k<nSpec;k++)
-	        	{
-	           		SUMYK = SUMYK + Y(j,k);
-				//species molecular weights === XMWT
-	           		*(F + j*nSpec + k) = XMDXM * ( Y(k,j)-Y(k,j-1) )*0.0;// convection term set to zero
-				*(F + j*nSpec + k) = *(F + j*nSpec + k) + (RHOP*YVelocity[j][k] - RHOM*YVelocity[j-1][k])/DX;
-				*(F + j*nSpec + k) = *(F + j*nSpec + k) - wDot(k,j)*W(k);
-				*(F + j*nSpec + k) = - dt*( *(F + j*nSpec + k) )/((RHOP + RHOM)/2.0);
-	        	}
-
-
-
-	}
-
-
-	for (j = 1;j<nPoints;j++)
-	 {
-      		for(k = 0;k<nSpec;k++)
-	 	 {
-      			Y(k,j) = Y(k,j) + *(F + j*nSpec + k);
-			if(Y(k,j)< 0.0 ) 
-			 {
-				Y(k,j) = 0.0;
-			 }
-	         }
-         }
-
-
-	delete[] F;
-
-                //-------------------------------ENERGY EQUATION-----------------------------------------------
-	for( j = 1;j<nPoints;j++)
-	{
-	       	for (k = 0; k<nSpec; k++)
-		{
-	        	wDot(k,j) = wDot(k,j)*GFAC;
-		}
-
-		SUMX = 0.0;
-	        TDOT = 0.0;
-
-		// set rho
-		RHOP= rho(j);
-		RHOM=rho(j-1);
-
-	        for (k = 0; k<nSpec;k++)
-		{
-			TDOT = TDOT + wDot(k,j)*hk(k,j);
-			SUMX = SUMX + 0.25 * (RHOP*YVelocity[j][k] + RHOM*YVelocity[j-1][k]) *cpSpec(k,j)*(T(j+1)-T(j-1))/DX;
-		}
-		
-
-
-	        FE[j] = (XMDOT*(T(j)-T(j-1))/DX)*0.0;// convection term set to zero
-		if ( j == ( nPoints - 1 ) )
-		 {
-			FE[j] = FE[j] +(lambda(j-1)*(T(j)-T(j-1))/DX)/(cp(j)*DX);
-		 }
-		else
-		 {
-			FE[j] = FE[j] -(lambda(j)*(T(j+1)-T(j))/DX-lambda(j-1)*(T(j)-T(j-1))/DX)/(cp(j)*DX);
-		 }		
-		FE[j] = FE[j] +(SUMX+TDOT)/cp(j);
-		FE[j] = - dt*FE[j]/((RHOP+ RHOM)/2.0);
-
-	}
+	PREMIXADV();
 
 	
-	//----------------------- UPDATE ARRAYS --------------------------
-
-	for (j = 1;j<nPoints;j++)
-	 {
-      		T(j) = T(j) + FE[j];
-
-         }
-
-	delete[] FE;
-	delete[] YVelocity;
-	
-	 logFile.write(format("Hi moj, the NTS_PE is : %i ") %NTS_PE);
+	logFile.write(format("Hi moj, the NTS_PE is : %i ") %NTS_PE);
 
 	if (Check_flag%200==0)
 		{
@@ -650,12 +552,12 @@ void FlameSolver::ReadParameters(Config& config)
 
     }
 }
-double** FlameSolver::DiffusionVelocityCalculator()
+void FlameSolver::DiffusionVelocityCalculator()
 {
 	int j,k;
 	double SUM,VC;
         double Yp[nSpec][nPoints];
-
+	assert(mathUtils::notnan(dVel));
 		
 		for(j=0;j<nPoints-1;j++)
 		{
@@ -672,39 +574,39 @@ double** FlameSolver::DiffusionVelocityCalculator()
 		}
 
 
-	double** YV= new double*[nPoints];
+	
 
         for(j=0; j<nPoints; j++)
 	{
 
-		YV[j]= new double[nSpec];
+		
 		for(k=0;k<nSpec;k++)
 		{
-                        YV[j][k] = - Dkm(k,j)*(Yp[k][j]-Y(k,j))/DX;
+                        dVel(k,j) = - Dkm(k,j)*(Yp[k][j]-Y(k,j))/DX;
 		}
 
 		SUM = 0.0;
 		for(k=0;k<nSpec;k++)
 		{
-                        SUM = SUM + YV[j][k];
+                        SUM = SUM + dVel(k,j);
 		}
                 VC = - SUM;
 		for(k=0;k<nSpec;k++)
 		{
-                        YV[j][k] = YV[j][k] + Y(k,j)*VC;
+                        dVel(k,j) = dVel(k,j) + Y(k,j)*VC;
 			
 		}
 	}
-	
+
 	if(t==2e-9){
         ofstream proof ("diff_velocity.txt");
 	    
        	    for ( k= 0; k< nPoints; k++)
         	{
-			proof<< YV[k][9] << "\n" ;
+			proof<< dVel(9,k) << "\n" ;
          	}
             proof.close();}
-	return YV;
+	
 }
 
 void FlameSolver::INIT_AllParameters() 
@@ -907,13 +809,13 @@ void FlameSolver::TM()
 }
 
 
-void FlameSolver::PREMIXADV(double **YV)
+void FlameSolver::PREMIXADV()
 {
-	dmatrix F;	
+
 	double RHOM,RHOP,SUMYK,SUMX,TDOT,XMDXM;
 	int k,j,kk,jj;
         //EVALUATE AND STORE THE DIFFUSION VELOCITIES
-
+	assert(mathUtils::notnan(F));
 			//double** YV;
 			//YV=DiffusionVelocityCalculator();
 
@@ -943,7 +845,7 @@ void FlameSolver::PREMIXADV(double **YV)
 	           		SUMYK = SUMYK + Y(j,k);
 				//species molecular weights === XMWT
 	           		F(3+k,j) = XMDXM * ( Y(k,j)-Y(k,j-1) )*0.0;// convection term set to zero
-				F(3+k,j) = F(3+k,j) + (RHOP*YV[j][k] - RHOM*YV[j-1][k])/DX;
+				F(3+k,j) = F(3+k,j) + (RHOP*dVel(k,j) - RHOM*dVel(k,j-1))/DX;
 				F(3+k,j) = F(3+k,j) - wDot(k,j)*W(k);
 				F(3+k,j) = - dt*F(3+k,j)/((RHOP + RHOM)/2.0);
 	        	}
@@ -956,20 +858,20 @@ void FlameSolver::PREMIXADV(double **YV)
 	        for (k = 0; k<nSpec;k++)
 		{
 			TDOT = TDOT + wDot(k,j)*hk(k,j);
-			SUMX = SUMX + 0.25 * (RHOP*YV[j][k] + RHOM*YV[j-1][k]) *cpSpec(k,j)*(T(j+1)-T(j-1))/DX;
+			SUMX = SUMX + 0.25 * (RHOP*dVel(k,j) + RHOM*dVel(k,j-1)) *cpSpec(k,j)*(T(j+1)-T(j-1))/DX;
 		}
 
-	        F(3,j) = (XMDOT*(T(j)-T(j-1))/DX)*0.0;// convection term set to zero
+	        F(2,j) = (XMDOT*(T(j)-T(j-1))/DX)*0.0;// convection term set to zero
 		if ( j == ( nPoints - 1 ) )
 		 {
-			F(3,j) = F(3,j) +(lambda(j-1)*(T(j)-T(j-1))/DX)/(cp(j)*DX);
+			F(2,j) = F(2,j) +(lambda(j-1)*(T(j)-T(j-1))/DX)/(cp(j)*DX);
 		 }
 		else
 		 {
-			F(3,j) = F(3,j) -(lambda(j)*(T(j+1)-T(j))/DX-lambda(j-1)*(T(j)-T(j-1))/DX)/(cp(j)*DX);
+			F(2,j) = F(2,j) -(lambda(j)*(T(j+1)-T(j))/DX-lambda(j-1)*(T(j)-T(j-1))/DX)/(cp(j)*DX);
 		 }		
-		F(3,j) = F(3,j) +(SUMX+TDOT)/cp(j);
-		F(3,j) = - dt*F(3,j)/((RHOP+ RHOM)/2.0);
+		F(2,j) = F(2,j) +(SUMX+TDOT)/cp(j);
+		F(2,j) = - dt*F(2,j)/((RHOP+ RHOM)/2.0);
 
 	}
 
@@ -977,7 +879,7 @@ void FlameSolver::PREMIXADV(double **YV)
 
 	for (j = 1;j<nPoints;j++)
 	 {
-      		T(j) = T(j) + F(3,j);
+      		T(j) = T(j) + F(2,j);
 
       		for(k = 0;k<nSpec;k++)
 	 	 {
@@ -1064,7 +966,7 @@ void FlameSolver::writeStateFile
 {
     if (stateWriter) {
         if (updateDerivatives) {
-		logFile.write(format("Hi moj 55555555555555555555555555555555555555555555555555"));
+	//	logFile.write(format("Hi moj 55555555555555555555555555555555555555555555555555"));
             updateChemicalProperties();
             //convectionSystem.evaluate();
         }
@@ -1109,6 +1011,8 @@ void FlameSolver::resizeAuxiliary()
     wDot.resize(nSpec, nPoints);
     hk.resize(nSpec, nPoints);
     jFick.setZero(nSpec, nPoints);
+    dVel.setZero(nSpec, nPoints);
+    F.setZero(nSpec+3, nPoints);
     jSoret.setZero(nSpec, nPoints);
 
     grid.jj = nPoints-1;
@@ -1285,7 +1189,7 @@ void FlameSolver::updateBC()
 
 void FlameSolver::updateChemicalProperties()
 {
-	logFile.write(format("Hi moj 66666666666666666666666666666666666666666666666"));
+//	logFile.write(format("Hi moj 66666666666666666666666666666666666666666666666"));
     tbb::parallel_for(tbb::blocked_range<size_t>(0, nPoints,1),
                       TbbWrapper<FlameSolver>(&FlameSolver::updateChemicalProperties, this));
 }
@@ -1297,7 +1201,7 @@ void FlameSolver::updateChemicalProperties(size_t j1, size_t j2)
         gas.setOptions(options);
         gas.initialize();
     }
-logFile.write(format("Hi moj 2"));
+//logFile.write(format("Hi moj 2"));
     // Calculate auxiliary data
     for (size_t j=j1; j<j2; j++) {
         // Thermodynamic properties
@@ -1329,7 +1233,7 @@ logFile.write(format("Hi moj 2"));
         diffusivityTimer.stop();
         transportTimer.stop();
     }
-logFile.write(format("Hi moj 22222222222222222222222222222222222"));
+//logFile.write(format("Hi moj 22222222222222222222222222222222222"));
 }
 
 

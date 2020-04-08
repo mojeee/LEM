@@ -83,16 +83,16 @@ public:
     		double kinematic_viscosity; // cm2/s
     		double D,lambda,r_datas,trip_map,GFAC,FAL,Intlength,NofRperR,NSPE;
 	};
-
+		double RHOM,RHOP,SUMYK,SUMX,TDOT,XMDXM;
 	void ReadParameters(Config& config);
 	void INIT_AllParameters();
-	double** DiffusionVelocityCalculator();
+	void DiffusionVelocityCalculator();
 	void Random_Number();
 	void eddyLength();
 	void BTriplet(double var[]);
         void TM();
 	void XRecord();
-	void PREMIXADV(double **YV);
+	void PREMIXADV();
 void setOptions(const ConfigOptions& options); //!< Set options read from the configuration file
     void initialize(); //!< call to generate profiles and perform one-time setup
     void finalize();
@@ -203,7 +203,8 @@ void setOptions(const ConfigOptions& options); //!< Set options read from the co
     dmatrix hk; //!< species molar enthalpies [J/kmol]
     dmatrix jFick; //!< Fickian mass flux [kg/m^2*s]
     dmatrix jSoret; //!< Soret mass flux [kg/m^2*s]
-
+    dmatrix dVel;
+    dmatrix F;
     // jCorr is a correction to force the net diffusion mass flux to be zero
     // jCorrSystem / jCorrSolver are used to introduce numerical diffusion into
     // jCorr to eliminate spatial instabilities
