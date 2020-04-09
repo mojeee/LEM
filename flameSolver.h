@@ -28,72 +28,29 @@ class FlameSolver : public GridBased, public SplitSolver
 public:
     FlameSolver();
     virtual ~FlameSolver();
-
-	double P; // GET_RHO_U
-	double XMDOT;// GET_RHO_U
-	double XMDT;
-	int GFAC;
+	int  nspc;
+	int nc;
+	int ncp1;
+	double Dx;
 	double PDFA;
 	double PDFB;
-	//double dt;
-	int NTS;
-	double NFL;
-	int NSIM;
-	int NSIM_counter=1;
-	int NTSPSIM;
-	int NTS_COUNT=1;
-	double XNU;
-	double DOM;
-	double C_lambda;
-	double Rate;
-	int NTS_PE;
-	int NC;
-	int NCM1;
-						int print_counter=0;
-	int NCP1;
-	double DX;
-	double TAU;
+	double Dom;
+	double ncm1;
 	double XLint;
 	double XLk;
 	double Re;
 	int MTS;
-	// random number
 	double random;
-	// eddy size 
 	int L;
-	// starting point of triplet map
 	int M;
-	int init_flag=1;
-	int Check_flag=1;
-	int Print_flag=0;
-	double Print_counter = 0;
-	int error_flag=0;
-	double check_velocity;
 
-	struct Config 
-	{
-    		double endtime;
-    		double timestep;
-		double Re_t;
-    		double dom;// cm
-    		double pressure; // dynes/cm2
-    		double velocity; // cm/s
-    		double Th; // K
-    		double cp; // erg/g-K
-    		double kinematic_viscosity; // cm2/s
-    		double D,lambda,r_datas,trip_map,GFAC,FAL,Intlength,NofRperR,NSPE;
-	};
-		double RHOM,RHOP,SUMYK,SUMX,TDOT,XMDXM;
-	void ReadParameters(Config& config);
-	void INIT_AllParameters();
-	void DiffusionVelocityCalculator();
+
+
+	
 	void Random_Number();
 	void eddyLength();
 	void BTriplet(double var[]);
         void TM();
-	void CFUEL();
-	void XRecord();
-	void PREMIXADV();
 void setOptions(const ConfigOptions& options); //!< Set options read from the configuration file
     void initialize(); //!< call to generate profiles and perform one-time setup
     void finalize();
@@ -200,12 +157,10 @@ void setOptions(const ConfigOptions& options); //!< Set options read from the co
     dmatrix cpSpec; //!< species molar heat capacities [J/kmol*K]
     dmatrix rhoD; //!< density * diffusivity [kg/m*s]
     dmatrix Dkt; //!< thermal diffusivity
-    dmatrix Dkm;
     dmatrix hk; //!< species molar enthalpies [J/kmol]
     dmatrix jFick; //!< Fickian mass flux [kg/m^2*s]
     dmatrix jSoret; //!< Soret mass flux [kg/m^2*s]
-    dmatrix dVel;
-    dmatrix F;
+
     // jCorr is a correction to force the net diffusion mass flux to be zero
     // jCorrSystem / jCorrSolver are used to introduce numerical diffusion into
     // jCorr to eliminate spatial instabilities
