@@ -89,7 +89,7 @@ void FlameSolver::initialize(void)
     ddtConv.setZero();
     ddtDiff.setZero();
     ddtProd.setZero();
-logFile.write(format("Hi moj 4444444444444444444444444444444444444444444444444"));
+//logFile.write(format("Hi moj 4444444444444444444444444444444444444444444444444"));
     updateChemicalProperties();
     calculateQdot();
 
@@ -142,14 +142,15 @@ void FlameSolver::setupStep()
         T(jj) = Tright;
         Y.col(jj) = Yright;
     }
-    logFile.write(format("Hi moj 3333333333333333333333333333333333333333333333333333"));
+//    logFile.write(format("Hi moj 3333333333333333333333333333333333333333333333333333"));
     updateChemicalProperties();
 
     updateBC();
     if (options.xFlameControl) {
         update_xStag(t, true); // calculate the value of rVzero
     }
-    //convectionSystem.set_rVzero(rVzero);
+// edit shode
+    convectionSystem.set_rVzero(rVzero);
     setupTimer.stop();
 
     // Set up solvers for split integration
@@ -204,7 +205,9 @@ void FlameSolver::prepareIntegrators()
 
     // Convection terms
     setConvectionSolverState(tNow);
-    dmatrix ddt = ddtConv*0.0 + ddtDiff*0.0 + ddtProd;
+// edit shode 1 2 3
+    dmatrix ddt = ddtConv*0.0 + ddtDiff*0.0 + ddtProd*0.0;
+    
     if (options.splittingMethod == "balanced") {
         ddt += ddtCross;
     }
@@ -213,10 +216,12 @@ void FlameSolver::prepareIntegrators()
     drhodt = - rho * (ddt.row(kEnergy).transpose() / T + tmp * Wmx);
 
     assert(mathUtils::notnan(drhodt));
+// edit shode 4 7 5
     //convectionSystem.setDensityDerivative(drhodt);
-    //convectionSystem.setSplitConstants(splitConstConv);
+    convectionSystem.setSplitConstants(splitConstConv);
     //convectionSystem.updateContinuityBoundaryCondition(qDot, options.continuityBC);
-    splitTimer.stop();
+//    
+	splitTimer.stop();
 }
 
 int FlameSolver::finishStep()
@@ -269,7 +274,7 @@ int FlameSolver::finishStep()
 	if (init_flag==1)
 	{
 		INIT_AllParameters();
-
+		//TM();
 		init_flag=0;
 	}	
 
@@ -290,11 +295,11 @@ int FlameSolver::finishStep()
 	
 	logFile.write(format("Hi moj, the NTS_PE is : %i ") %NTS_PE);
 
-	if (Check_flag%200==0)
+	if (Check_flag%NTS_PE==0)
 		{
 			TM();
 		}
-
+/*
 	if (Check_flag%NTSPSIM==0 && NSIM_counter<=NSIM)
 	{
 		check_velocity=XMDOT*(8.3144627*T(nPoints-1))/(P*Wmx(nPoints-1));
@@ -309,7 +314,7 @@ int FlameSolver::finishStep()
 			NSIM_counter=NSIM_counter+1;
 		 }
 	}
-	
+	*/
 	Check_flag=Check_flag+1;
 
 
@@ -536,7 +541,7 @@ void FlameSolver::ReadParameters(Config& config)
         else if (line.find("u") != -1)
             sin >> config.velocity;
         else if (line.find("T") != -1)
-            sin >> config.Temp; // GET_RHO_U
+            sin >> config.Th; // GET_RHO_U
         else if (line.find("kinematic_viscosity") != -1)
             sin >> config.kinematic_viscosity;
         else if (line.find("GFAC") != -1)
@@ -627,7 +632,7 @@ void FlameSolver::INIT_AllParameters()
 	NSIM =config.NofRperR ;
 	NTSPSIM=config.NSPE ;
  	NTS_COUNT = 0;
-	Temperature= config.Temp;
+	Temperature= config.Th;
 	U_velocity= config.velocity;
 	P =config.pressure;
         density = P*Wmx(nPoints-1)/(8.3144627*Temperature);
@@ -692,7 +697,7 @@ void FlameSolver::eddyLength()
         {
                 L=NSize+1;
         }
-
+	
 }
 
 
@@ -776,6 +781,7 @@ void FlameSolver::TM()
 		eddyLength();
 	 }
 		
+
 	for(j=0;j<nPoints;j++)
          {
                 Temp[j]=T(j);
@@ -807,7 +813,38 @@ void FlameSolver::TM()
 
 	
 }
+void FlameSolver::CFUEL()
+{
 
+// NFL set based on chemistry, you should find the CH4 location in Y matrix
+	int NSTAB;
+	double velocity,RHO2;
+	velocity=U(0);
+	RHO2=rho(0);
+	NSTAB = int(NCP1/3);
+// MILD CORRECTION
+      if(Y(NFL,NSTAB)< 0.80*Y(NFL,0)  && velocity<30.0)
+	{
+         velocity= velocity + 0.001;
+	}
+      else if(Y(NFL,NSTAB+1)> 0.8*Y(NFL,0) && velocity> 15.0) 
+	{
+         velocity    = velocity - 0.0010;
+	}
+
+// AGRESSIVE CORRECTION
+      if(  Y(NFL,NSTAB-2) <= 0.80*Y(NFL,0) && velocity < 30.0) 
+	{
+         velocity    = velocity + 0.01;
+	}
+      else if (  Y(NFL,NSTAB+3) > 0.80*Y(NFL,0) && velocity> 15.0) 	
+	{
+         velocity    = velocity - 0.01;
+	}
+
+      XMDOT = RHO2*velocity;
+
+}
 
 void FlameSolver::PREMIXADV()
 {
@@ -968,6 +1005,7 @@ void FlameSolver::writeStateFile
         if (updateDerivatives) {
 	//	logFile.write(format("Hi moj 55555555555555555555555555555555555555555555555555"));
             updateChemicalProperties();
+// edit shode 5
             //convectionSystem.evaluate();
         }
         stateWriter->eval(fileNameStr, errorFile);
@@ -1060,8 +1098,8 @@ void FlameSolver::resizeAuxiliary()
     convectionSystem.setGrid(grid);
     convectionSystem.resize(nPoints, nSpec, state);
     convectionSystem.setLeftBC(Tleft, Yleft);
-
-   // convectionSystem.utwSystem.setStrainFunction(strainfunc);
+// edit shode 6.5
+    //convectionSystem.utwSystem.setStrainFunction(strainfunc);
     //convectionSystem.utwSystem.setRhou(rhou);
 
     if (options.quasi2d) {
@@ -1258,7 +1296,8 @@ void FlameSolver::setDiffusionSolverState(double tInitial)
 void FlameSolver::setConvectionSolverState(double tInitial)
 {
     splitTimer.resume();
- //   convectionSystem.setState(tInitial);
+// edit shode 7
+    //convectionSystem.setState(tInitial);
     splitTimer.stop();
 }
 
@@ -1273,20 +1312,21 @@ void FlameSolver::setProductionSolverState(double tInitial)
 
 void FlameSolver::integrateConvectionTerms()
 {
-   /* setConvectionSolverState(tStageStart);
+// edit shode 7
+   // setConvectionSolverState(tStageStart);
     convectionTimer.start();
-    try {
+  /*  try {
         convectionSystem.integrateToTime(tStageEnd);
     } catch (DebugException& e) {
         logFile.write(e.errorString);
         writeStateFile("err_convectionIntegration", true, false);
         throw;
-    }
+    }*/
     convectionTimer.stop();
 
     splitTimer.resume();
-    convectionSystem.unroll_y();
-    splitTimer.stop();*/
+  //  convectionSystem.unroll_y();
+    splitTimer.stop();
 }
 
 void FlameSolver::integrateProductionTerms()
@@ -1519,8 +1559,9 @@ void FlameSolver::loadProfile(void)
     } else {
         Y = options.Y_initial;
     }
+// edit shode 6
     //convectionSystem.V = options.V_initial;
-   // convectionSystem.utwSystem.V = options.V_initial;
+    //convectionSystem.utwSystem.V = options.V_initial;
     //rVzero = convectionSystem.utwSystem.V[0];
 
     grid.setSize(x.size());

@@ -78,7 +78,7 @@ public:
     		double dom;// cm
     		double pressure; // dynes/cm2
     		double velocity; // cm/s
-    		double Temp; // K
+    		double Th; // K
     		double cp; // erg/g-K
     		double kinematic_viscosity; // cm2/s
     		double D,lambda,r_datas,trip_map,GFAC,FAL,Intlength,NofRperR,NSPE;
@@ -91,6 +91,7 @@ public:
 	void eddyLength();
 	void BTriplet(double var[]);
         void TM();
+	void CFUEL();
 	void XRecord();
 	void PREMIXADV();
 void setOptions(const ConfigOptions& options); //!< Set options read from the configuration file
