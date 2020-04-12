@@ -292,7 +292,15 @@ int FlameSolver::finishStep()
 
 	PREMIXADV();
 
-	
+		if(t==2e-9){
+        ofstream proof ("molecular_weight.txt");
+	    
+       	    for ( k= 0; k< nSpec; k++)
+        	{
+			proof<< W(k) << "\n" ;
+         	}
+            proof.close();}
+
 	logFile.write(format("Hi moj, the NTS_PE is : %i ") %NTS_PE);
 	logFile.write(format("Hi moj, the simulation number is : %i ") %Check_flag);
 
@@ -408,26 +416,15 @@ void FlameSolver::DiffusionVelocityCalculator()
 	int j,k;
 	double SUM,VC;
         double Yp[nSpec][nPoints];
-	double X[nSpec][nPoints];
-	double Xp[nSpec][nPoints];
 	assert(mathUtils::notnan(dVel));
 		
 		
-
-		for(j=0;j<nPoints;j++)
-		{
-			for(k=0;k<nSpec;k++)
-			{			
-				X[k][j] = Y(k,j)*(Wmx(j)/W(k));
-			}
-		}
 
 		for(j=0;j<nPoints-1;j++)
 		{
 			for(k=0;k<nSpec;k++)
 			{			
 				Yp[k][j] = Y(k,j+1);
-				Xp[k][j] = X[k][j+1];
 			}
 		}
 
@@ -435,7 +432,7 @@ void FlameSolver::DiffusionVelocityCalculator()
 		for(k=0;k<nSpec;k++)
 		{			
 			Yp[k][nPoints-1] = Y(k,nPoints-1);
-			Xp[k][nPoints-1] = X[k][nPoints-1];
+
 		}
 
 
@@ -447,7 +444,8 @@ void FlameSolver::DiffusionVelocityCalculator()
 		
 		for(k=0;k<nSpec;k++)
 		{
-                        dVel(k,j) = - Dkm(k,j)/(X[k][j])*(Xp[k][j]-X[k][j])/DX;
+				dVel(k,j) = - Dkm(k,j)*(Yp[k][j]-Y(k,j))/DX;		
+			
 		}
 
 		SUM = 0.0;
@@ -463,7 +461,7 @@ void FlameSolver::DiffusionVelocityCalculator()
 		}
 	}
 
-/*	if(t==2e-9){
+	if(t==2e-9){
         ofstream proof ("diff_velocity.txt");
 	    
        	    for ( k= 0; k< nPoints; k++)
@@ -471,7 +469,7 @@ void FlameSolver::DiffusionVelocityCalculator()
 			proof<< dVel(9,k) << "\n" ;
          	}
             proof.close();}
-*/	
+	
 }
 
 void FlameSolver::INIT_AllParameters() 
