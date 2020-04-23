@@ -291,31 +291,23 @@ int FlameSolver::finishStep()
 // PREMIXADV FUNCTION -----------------------------------------------------------------------------------
 
 	PREMIXADV();
-
-		if(t==2e-9){
-        ofstream proof ("molecular_weight.txt");
-	    
-       	    for ( k= 0; k< nSpec; k++)
-        	{
-			proof<< W(k) << "\n" ;
-         	}
-            proof.close();}
+		
 
 	logFile.write(format("Hi moj, the NTS_PE is : %i ") %NTS_PE);
 	logFile.write(format("Hi moj, the simulation number is : %i ") %Check_flag);
 
 	if (Check_flag%NTS_PE==0)
 		{
-			TM();
+			//TM();
 		}
 
 
 	Check_flag=Check_flag+1;
+	
+	VolumeExpansion();
 
 
-
-/*
-	if (Check_flag%NTSPSIM==0 && NSIM_counter<=NSIM)
+/*	if (Check_flag%NTSPSIM==0 && NSIM_counter<=NSIM)
 	{
 		check_velocity=XMDOT*(8.3144627*T(nPoints-1))/(P*Wmx(nPoints-1));
         	if( check_velocity > 2.4 || check_velocity <= 0.0 )
@@ -329,7 +321,7 @@ int FlameSolver::finishStep()
 			NSIM_counter=NSIM_counter+1;
 		 }
 	}
-	*/
+*/
     // Save the current integral and profile data in files that are
     // automatically overwritten, and save the time-series data (out.h5)
     if (nCurrentState >= options.currentStateStepInterval) {
@@ -354,6 +346,115 @@ setupTimer.stop();
     }
     nTotal++;
     return 0;
+}
+
+
+void FlameSolver::VolumeExpansion()
+{
+
+	int j,DCFlag,i,low_count,h,jj;
+	double SumDCV=0,low;
+	
+	for(j=0;j<nPoints;j++)
+	{
+				
+			rho_old[j]=rho[j];
+	}
+	
+	updateChemicalProperties();
+	
+	for(j=0;j<nPoints;j++)
+	{
+				
+			DCvolume[j]=rho_old[j]/rho[j];
+	}
+	/*
+        ofstream proof ("DCvolume.txt");
+	    
+       	    for ( j= 0; j< nPoints; j++)
+        	{
+			proof<< j*DX << "\t"<< T(j) << "\t"<< DCvolume[j] << "\n" ;
+         	}
+            proof.close();*/
+
+	for (j=0 ; j<nPoints; j++)
+	{
+		SumDCV=SumDCV+DCvolume[j];
+	}
+
+	if ( SumDCV<nPoints)
+	{
+		DCFlag=1;
+	}
+	else if (SumDCV==nPoints )
+	{
+		DCFlag=2;
+	}
+	else if (SumDCV>nPoints )
+	{
+		DCFlag=3;
+	}
+
+	
+	i=2;//after
+	j=2;//before
+	while (j<nPoints-1)
+	{
+		if ((DCvolume[j]-1)>0.0001)
+		 {
+			T(i)=T(j);
+			DCvolume[j]=DCvolume[j]-1;
+			i++;
+		 }
+		else if ((1-DCvolume[j])>0.0001)
+		 {
+			low=DCvolume[j];
+			low_count=0;
+			jj=j;
+
+			while(low<1)
+			{
+				jj++;
+				if ((low+DCvolume[jj])>=1)
+				{
+					break;
+				}
+				if((low+DCvolume[jj])<1)
+				{
+					low=low+DCvolume[jj];
+					low_count=low_count+1;				
+				}				
+
+			}
+
+			T(i)=T(j)*DCvolume[j];
+
+
+			for(h=0;h<low_count;h++)
+			{
+				j++;
+				T(i)=T(i)+T(j)*DCvolume[j];
+			}
+			
+
+			T(i)=T(i)+(1-low)*T(jj);
+			DCvolume[jj]=DCvolume[jj]-(1-low);
+			j=jj;
+			i++;
+		 }
+		else if(abs(DCvolume[j]-1)<0.0001)
+		 {
+			T(i)=T(j);
+			j++;
+			i++;				
+		 }
+	}
+
+	
+
+
+
+
 }
 
 
@@ -416,22 +517,32 @@ void FlameSolver::DiffusionVelocityCalculator()
 	int j,k;
 	double SUM,VC;
         double Yp[nSpec][nPoints];
+	double XMF[nSpec][nPoints];
+	double XMFP[nSpec][nPoints];
 	assert(mathUtils::notnan(dVel));
 		
 		
+
+		for(j=0;j<nPoints;j++)
+		{
+			for(k=0;k<nSpec;k++)
+			{			
+				XMF[k][j] = Y(k,j)*(Wmx(j)/W(k));
+			}
+		}
 
 		for(j=0;j<nPoints-1;j++)
 		{
 			for(k=0;k<nSpec;k++)
 			{			
-				Yp[k][j] = Y(k,j+1);
+				XMFP[k][j] = XMF[k][j+1];
 			}
 		}
 
 
 		for(k=0;k<nSpec;k++)
 		{			
-			Yp[k][nPoints-1] = Y(k,nPoints-1);
+			XMFP[k][nPoints-1] = XMF[k][nPoints-1];
 
 		}
 
@@ -444,7 +555,7 @@ void FlameSolver::DiffusionVelocityCalculator()
 		
 		for(k=0;k<nSpec;k++)
 		{
-				dVel(k,j) = - Dkm(k,j)*(Yp[k][j]-Y(k,j))/DX;		
+				dVel(k,j) = - Dkm(k,j)*(W(k)/Wmx(j))*(XMFP[k][j]-XMF[k][j])/DX;		
 			
 		}
 
@@ -498,7 +609,7 @@ void FlameSolver::INIT_AllParameters()
 	XNU = config.kinematic_viscosity;
 	Re =  config.Re_t;
 	XLint = config.Intlength;
-	XLk   = XLint/pow(Re,0.75);
+	XLk   = 4*XLint/pow(Re,0.75);
 	C_lambda = 15.0 ;
 	Rate = DOM*100*(54.0/5.0)*( XNU*Re / (C_lambda*pow(XLint,3)) )*( pow((XLint/XLk),(5/3)) - 1)/( 1 - pow((XLk/XLint),(4/3)) );
 	NTS_PE = (1.0/Rate)/dt+1;
@@ -862,7 +973,7 @@ void FlameSolver::writeStateFile
     if (stateWriter) {
         if (updateDerivatives) {
 	//	logFile.write(format("Hi moj 55555555555555555555555555555555555555555555555555"));
-            updateChemicalProperties();
+            //updateChemicalProperties();
 // edit shode 5
             //convectionSystem.evaluate();
         }
@@ -892,6 +1003,8 @@ void FlameSolver::resizeAuxiliary()
     ddtCross.bottomRows(nSpec) *= NaN;
 
     rho.setZero(nPoints);
+    rho_old.setZero(nPoints);
+    DCvolume.setZero(nPoints);
     drhodt.setZero(nPoints);
     Wmx.resize(nPoints);
     mu.resize(nPoints);

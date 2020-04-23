@@ -84,6 +84,7 @@ public:
     		double D,lambda,r_datas,trip_map,GFAC,FAL,Intlength,NofRperR,NSPE;
 	};
 		double RHOM,RHOP,SUMYK,SUMX,TDOT,XMDXM;
+	void VolumeExpansion();	
 	void ReadParameters(Config& config);
 	void INIT_AllParameters();
 	void DiffusionVelocityCalculator();
@@ -187,6 +188,8 @@ void setOptions(const ConfigOptions& options); //!< Set options read from the co
 
     // Auxiliary variables:
     dvec rho; //!< density [kg/m^3]
+    dvec rho_old;
+    dvec DCvolume;
     dvec drhodt; //!< time derivative of density [kg/m^3*s]
     dvec jCorr; //!< Correction to ensure sum of mass fractions = 1
     dvec sumcpj; //!< part of the enthalpy flux term
