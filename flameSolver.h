@@ -189,6 +189,7 @@ void setOptions(const ConfigOptions& options); //!< Set options read from the co
     // Auxiliary variables:
     dvec rho; //!< density [kg/m^3]
     dvec rho_old;
+    dvec T_old;
     dvec DCvolume;
     dvec drhodt; //!< time derivative of density [kg/m^3*s]
     dvec jCorr; //!< Correction to ensure sum of mass fractions = 1

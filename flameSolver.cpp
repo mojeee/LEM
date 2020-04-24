@@ -290,9 +290,10 @@ int FlameSolver::finishStep()
 
 // PREMIXADV FUNCTION -----------------------------------------------------------------------------------
 
-	PREMIXADV();
-		
 
+	PREMIXADV();
+
+	    
 	logFile.write(format("Hi moj, the NTS_PE is : %i ") %NTS_PE);
 	logFile.write(format("Hi moj, the simulation number is : %i ") %Check_flag);
 
@@ -361,21 +362,27 @@ void FlameSolver::VolumeExpansion()
 			rho_old[j]=rho[j];
 	}
 	
+
 	updateChemicalProperties();
-	
+
 	for(j=0;j<nPoints;j++)
 	{
 				
 			DCvolume[j]=rho_old[j]/rho[j];
 	}
-	/*
+	
         ofstream proof ("DCvolume.txt");
 	    
        	    for ( j= 0; j< nPoints; j++)
         	{
-			proof<< j*DX << "\t"<< T(j) << "\t"<< DCvolume[j] << "\n" ;
+			proof<< j << "\t"<< T(j) << "\t"<< DCvolume[j] << "\n" ;
          	}
-            proof.close();*/
+            proof.close();
+
+	for ( j=0 ; j<nPoints; j++)
+	{
+		T_old[j]=T(j);
+	}
 
 	for (j=0 ; j<nPoints; j++)
 	{
@@ -398,53 +405,65 @@ void FlameSolver::VolumeExpansion()
 	
 	i=2;//after
 	j=2;//before
+	//logFile.write(format("Hi moj, the starting point of while") );
 	while (j<nPoints-1)
 	{
-		if ((DCvolume[j]-1)>0.0001)
+		//logFile.write(format("Hi moj, the line 406 and j is : %i ") %j);
+		if ((DCvolume[j]-1.0)>0.0000001)
 		 {
-			T(i)=T(j);
-			DCvolume[j]=DCvolume[j]-1;
+			//logFile.write(format("Hi moj, the line 409 ") );
+			T(i)=T_old[j];
+			//logFile.write(format("Hi moj, the line 411 and T at j is : %d ") %T(i));
+			DCvolume[j]=DCvolume[j]-1.0;
 			i++;
 		 }
-		else if ((1-DCvolume[j])>0.0001)
+		else if ((1.0-DCvolume[j])>0.0000001)
 		 {
 			low=DCvolume[j];
+			//logFile.write(format("Hi moj, the line 418 and low at j is : %d ") %low);
 			low_count=0;
 			jj=j;
-
-			while(low<1)
+			//logFile.write(format("Hi moj, the line 420 and jj is : %i ") %jj);
+			while(low<1.0)
 			{
-				jj++;
-				if ((low+DCvolume[jj])>=1)
+				jj=jj+1;
+				if ((low+DCvolume[jj])>=1.0)
 				{
 					break;
 				}
-				if((low+DCvolume[jj])<1)
+				if((low+DCvolume[jj])<1.0)
 				{
 					low=low+DCvolume[jj];
 					low_count=low_count+1;				
 				}				
 
 			}
-
-			T(i)=T(j)*DCvolume[j];
-
+			//logFile.write(format("Hi moj, the line 436 and low at j is : %d ") %low);
+			//logFile.write(format("Hi moj, the line 437 and jj is : %i ") %jj);
+			//logFile.write(format("Hi moj, the line 438 and i is : %i ") %i);
+			//logFile.write(format("Hi moj, the line 439 and jis : %i ") %j);
+			//logFile.write(format("Hi moj, the line 440 and DCvolume[j] is : %i ") %DCvolume[j]);
+			T(i)=T_old[j]*DCvolume[j];
+			//logFile.write(format("Hi moj, the line 442 and T at j is : %d ") %T(i));
 
 			for(h=0;h<low_count;h++)
 			{
 				j++;
-				T(i)=T(i)+T(j)*DCvolume[j];
+				T(i)=T(i)+T_old[j]*DCvolume[j];
 			}
-			
-
-			T(i)=T(i)+(1-low)*T(jj);
-			DCvolume[jj]=DCvolume[jj]-(1-low);
+			//logFile.write(format("Hi moj, the line 449 and T at j is : %d ") %T(i));			
+			//logFile.write(format("Hi moj, the line 450 and j is : %i ") %j);
+			//logFile.write(format("Hi moj, the line 451 and jj is : %i ") %jj);
+			T(i)=T(i)+(1.0-low)*T_old[jj];
+			//logFile.write(format("Hi moj, the line 452 and T at j is : %d ") %T(i));
+			DCvolume[jj]=DCvolume[jj]-(1.0-low);
 			j=jj;
 			i++;
 		 }
-		else if(abs(DCvolume[j]-1)<0.0001)
+		else if(abs(DCvolume[j]-1.0)<0.0000001)
 		 {
-			T(i)=T(j);
+			T(i)=T_old[j];
+			//logFile.write(format("Hi moj, the line 455 and T at j is : %d ") %T(i));
 			j++;
 			i++;				
 		 }
@@ -1004,6 +1023,7 @@ void FlameSolver::resizeAuxiliary()
 
     rho.setZero(nPoints);
     rho_old.setZero(nPoints);
+    T_old.setZero(nPoints);
     DCvolume.setZero(nPoints);
     drhodt.setZero(nPoints);
     Wmx.resize(nPoints);
