@@ -209,6 +209,8 @@ void setOptions(const ConfigOptions& options); //!< Set options read from the co
     dmatrix jFick; //!< Fickian mass flux [kg/m^2*s]
     dmatrix jSoret; //!< Soret mass flux [kg/m^2*s]
     dmatrix dVel;
+    dmatrix Y_old;
+
     dmatrix F;
     // jCorr is a correction to force the net diffusion mass flux to be zero
     // jCorrSystem / jCorrSolver are used to introduce numerical diffusion into

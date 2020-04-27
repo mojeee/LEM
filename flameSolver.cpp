@@ -353,13 +353,15 @@ setupTimer.stop();
 void FlameSolver::VolumeExpansion()
 {
 
-	int j,DCFlag,i,low_count,h,jj;
+	int j,k,DCFlag,i,low_count,h,jj;
 	double SumDCV=0,low;
+	assert(mathUtils::notnan(Y_old));
 	
 	for(j=0;j<nPoints;j++)
 	{
 				
-			rho_old[j]=rho[j];
+		rho_old[j]=rho[j];
+			
 	}
 	
 
@@ -368,7 +370,7 @@ void FlameSolver::VolumeExpansion()
 	for(j=0;j<nPoints;j++)
 	{
 				
-			DCvolume[j]=rho_old[j]/rho[j];
+		DCvolume[j]=rho_old[j]/rho[j];
 	}
 	
         ofstream proof ("DCvolume.txt");
@@ -382,6 +384,10 @@ void FlameSolver::VolumeExpansion()
 	for ( j=0 ; j<nPoints; j++)
 	{
 		T_old[j]=T(j);
+		for ( k=0;k<nSpec;k++)
+		{
+			Y_old(k,j)=Y(k,j); 
+		}
 	}
 
 	for (j=0 ; j<nPoints; j++)
@@ -413,6 +419,10 @@ void FlameSolver::VolumeExpansion()
 		 {
 			//logFile.write(format("Hi moj, the line 409 ") );
 			T(i)=T_old[j];
+			for ( k=0;k<nSpec;k++)
+			{
+				Y(k,j)=Y_old(k,j); 
+			}
 			//logFile.write(format("Hi moj, the line 411 and T at j is : %d ") %T(i));
 			DCvolume[j]=DCvolume[j]-1.0;
 			i=i+1;
@@ -444,17 +454,30 @@ void FlameSolver::VolumeExpansion()
 			//logFile.write(format("Hi moj, the line 439 and jis : %i ") %j);
 			//logFile.write(format("Hi moj, the line 440 and DCvolume[j] is : %i ") %DCvolume[j]);
 			T(i)=T_old[j]*DCvolume[j];
+			for ( k=0;k<nSpec;k++)
+			{
+				Y(k,i)=Y_old(k,j)*DCvolume[j]; 
+			}
 			//logFile.write(format("Hi moj, the line 442 and T at j is : %d ") %T(i));
 
 			for(h=0;h<low_count;h++)
 			{
 				j=j+1;
 				T(i)=T(i)+T_old[j]*DCvolume[j];
+				for ( k=0;k<nSpec;k++)
+				{
+					Y(k,i)=Y(k,i)+Y_old(k,j)*DCvolume[j]; 
+				}			
+				
 			}
 			//logFile.write(format("Hi moj, the line 449 and T at j is : %d ") %T(i));			
 			//logFile.write(format("Hi moj, the line 450 and j is : %i ") %j);
 			//logFile.write(format("Hi moj, the line 451 and jj is : %i ") %jj);
 			T(i)=T(i)+(1.0-low)*T_old[jj];
+			for ( k=0;k<nSpec;k++)
+			{
+				Y(k,i)=Y(k,i)+(1.0-low)*Y_old(k,jj); 
+			}
 			//logFile.write(format("Hi moj, the line 452 and T at j is : %d ") %T(i));
 			DCvolume[jj]=DCvolume[jj]-(1.0-low);
 			j=jj;
@@ -463,6 +486,10 @@ void FlameSolver::VolumeExpansion()
 		else if(abs(DCvolume[j]-1.0)<0.00000001)
 		 {
 			T(i)=T_old[j];
+			for(k=0;k<nSpec;k++)
+			{
+				Y(k,i)=Y_old(k,j);
+			}			
 			//logFile.write(format("Hi moj, the line 455 and T at j is : %d ") %T(i));
 			j=j+1;
 			i=i+1;				
@@ -1041,6 +1068,7 @@ void FlameSolver::resizeAuxiliary()
     hk.resize(nSpec, nPoints);
     jFick.setZero(nSpec, nPoints);
     dVel.setZero(nSpec, nPoints);
+    Y_old.setZero(nSpec,nPoints);
     F.setZero(nSpec+3, nPoints);
     jSoret.setZero(nSpec, nPoints);
 
