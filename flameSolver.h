@@ -69,7 +69,7 @@ public:
 	double Print_counter = 0;
 	int error_flag=0;
 	double check_velocity;
-
+	int target1,target2;
 	struct Config 
 	{
     		double endtime;
@@ -95,6 +95,8 @@ public:
 	void CFUEL();
 	void XRecord();
 	void PREMIXADV();
+	void Find2NearPoints(int local);
+
 void setOptions(const ConfigOptions& options); //!< Set options read from the configuration file
     void initialize(); //!< call to generate profiles and perform one-time setup
     void finalize();
@@ -191,6 +193,8 @@ void setOptions(const ConfigOptions& options); //!< Set options read from the co
     dvec rho_old;
     dvec T_old;
     dvec DCvolume;
+    dvec position;
+    dvec uniformGrid;
     dvec drhodt; //!< time derivative of density [kg/m^3*s]
     dvec jCorr; //!< Correction to ensure sum of mass fractions = 1
     dvec sumcpj; //!< part of the enthalpy flux term

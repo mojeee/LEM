@@ -354,7 +354,7 @@ void FlameSolver::VolumeExpansion()
 {
 
 	int j,k,DCFlag,i,low_count,h,jj;
-	double SumDCV=0,low;
+	double SumDCV=0,low,slop;
 	assert(mathUtils::notnan(Y_old));
 	
 	for(j=0;j<nPoints;j++)
@@ -364,24 +364,27 @@ void FlameSolver::VolumeExpansion()
 			
 	}
 	
-
 	updateChemicalProperties();
 
-	for(j=0;j<nPoints;j++)
+
+	position[0]=0;
+	for(j=1;j<nPoints-1;j++)
 	{
 				
 		DCvolume[j]=rho_old[j]/rho[j];
+		if (DCvolume[j]*DX+position[j-1] < DX*(nPoints-1))
+		{
+			position[j]=DCvolume[j]*DX+position[j-1];
+		}
+		else 
+		{
+			position[j]=DX*nPoints;
+		}
 	}
 	
-        ofstream proof ("DCvolume.txt");
-	    
-       	    for ( j= 0; j< nPoints; j++)
-        	{
-			proof<< j << "\t"<< T(j) << "\t"<< DCvolume[j] << "\n" ;
-         	}
-            proof.close();
+	position[nPoints-1]=(nPoints-1)*DX;
 
-	for ( j=0 ; j<nPoints; j++)
+	for (j=0;j<nPoints;j++)
 	{
 		T_old[j]=T(j);
 		for ( k=0;k<nSpec;k++)
@@ -390,118 +393,101 @@ void FlameSolver::VolumeExpansion()
 		}
 	}
 
-	for (j=0 ; j<nPoints; j++)
+
+	for(j=0;j<nPoints;j++)
 	{
-		SumDCV=SumDCV+DCvolume[j];
+		uniformGrid[j]=j*DX;
 	}
 
-	if ( SumDCV<nPoints)
-	{
-		DCFlag=1;
-	}
-	else if (SumDCV==nPoints )
-	{
-		DCFlag=2;
-	}
-	else if (SumDCV>nPoints )
-	{
-		DCFlag=3;
-	}
+	// i is counter of new cell
+	i=1;	
 
-	
-	i=2;//after
-	j=2;//before
-	//logFile.write(format("Hi moj, the starting point of while") );
-	while (j<nPoints-1)
+	for (j=2;j<nPoints-2;j++)
 	{
-		//logFile.write(format("Hi moj, the line 406 and j is : %i ") %j);
-		if ((DCvolume[j]-1.0)>0.00000001)
-		 {
-			//logFile.write(format("Hi moj, the line 409 ") );
-			T(i)=T_old[j];
-			for ( k=0;k<nSpec;k++)
-			{
-				Y(k,j)=Y_old(k,j); 
-			}
-			//logFile.write(format("Hi moj, the line 411 and T at j is : %d ") %T(i));
-			DCvolume[j]=DCvolume[j]-1.0;
-			i=i+1;
-		 }
-		else if ((1.0-DCvolume[j])>0.00000001)
-		 {
-			low=DCvolume[j];
-			//logFile.write(format("Hi moj, the line 418 and low at j is : %d ") %low);
-			low_count=0;
-			jj=j;
-			//logFile.write(format("Hi moj, the line 420 and jj is : %i ") %jj);
-			while(low<1.0)
-			{
-				jj=jj+1;
-				if ((low+DCvolume[jj])>=1.0)
-				{
-					break;
-				}
-				if((low+DCvolume[jj])<1.0)
-				{
-					low=low+DCvolume[jj];
-					low_count=low_count+1;				
-				}				
+		Find2NearPoints(j);
+		//logFile.write(format("Hi moj, target1 : %i T1 : %d X1 : %d target2  : %i  T2 : %d X2: %d also j : %i") %target1 %T_old[target1] %position[target1] %target2 %T_old[target2] %position[target2] %j);
+		//logFile.write(format("----------------------- ") );
+		//linear interpolation;
+		slop= (T_old[target2]-T_old[target1])/(position[target2]-position[target1]);
+		//logFile.write(format("Hi moj, the slop is : %d ") %slop);
+		T(j)= T_old(target1)+(uniformGrid[j]-position[target1])*(slop);
 
-			}
-			//logFile.write(format("Hi moj, the line 436 and low at j is : %d ") %low);
-			//logFile.write(format("Hi moj, the line 437 and jj is : %i ") %jj);
-			//logFile.write(format("Hi moj, the line 438 and i is : %i ") %i);
-			//logFile.write(format("Hi moj, the line 439 and jis : %i ") %j);
-			//logFile.write(format("Hi moj, the line 440 and DCvolume[j] is : %i ") %DCvolume[j]);
-			T(i)=T_old[j]*DCvolume[j];
-			for ( k=0;k<nSpec;k++)
-			{
-				Y(k,i)=Y_old(k,j)*DCvolume[j]; 
-			}
-			//logFile.write(format("Hi moj, the line 442 and T at j is : %d ") %T(i));
+		for( k=0;k<nSpec;k++)
+		{
+			slop= (Y_old(k,target2)-Y_old(k,target1))/(position[target2]-position[target1]);
+			Y(k,j)=Y_old(k,target1)+(uniformGrid[j]-position[target1])*(slop);
+		}
 
-			for(h=0;h<low_count;h++)
-			{
-				j=j+1;
-				T(i)=T(i)+T_old[j]*DCvolume[j];
-				for ( k=0;k<nSpec;k++)
-				{
-					Y(k,i)=Y(k,i)+Y_old(k,j)*DCvolume[j]; 
-				}			
-				
-			}
-			//logFile.write(format("Hi moj, the line 449 and T at j is : %d ") %T(i));			
-			//logFile.write(format("Hi moj, the line 450 and j is : %i ") %j);
-			//logFile.write(format("Hi moj, the line 451 and jj is : %i ") %jj);
-			T(i)=T(i)+(1.0-low)*T_old[jj];
-			for ( k=0;k<nSpec;k++)
-			{
-				Y(k,i)=Y(k,i)+(1.0-low)*Y_old(k,jj); 
-			}
-			//logFile.write(format("Hi moj, the line 452 and T at j is : %d ") %T(i));
-			DCvolume[jj]=DCvolume[jj]-(1.0-low);
-			j=jj;
-			i=i+1;
-		 }
-		else if(abs(DCvolume[j]-1.0)<0.00000001)
-		 {
-			T(i)=T_old[j];
-			for(k=0;k<nSpec;k++)
-			{
-				Y(k,i)=Y_old(k,j);
-			}			
-			//logFile.write(format("Hi moj, the line 455 and T at j is : %d ") %T(i));
-			j=j+1;
-			i=i+1;				
-		 }
 	}
-
-	
 
 
 
 
 }
+
+
+
+void FlameSolver::Find2NearPoints(int local)
+{
+
+	int j;
+	double temporary,tposition;
+	double diftemp[nPoints];
+	double local_position[nPoints];
+
+
+	
+	for (j=0; j<nPoints;j++)
+	{
+		local_position[j]=position[j];
+	}
+
+	tposition= local * DX;
+
+	for (j=0; j<nPoints;j++)
+	{
+		diftemp[j]=abs(local_position[j]-tposition);
+	}
+
+	temporary= 2*nPoints*DX;
+	target1=0;
+	for(j=1;j<nPoints;j++)
+	{
+		if(local_position[j]< tposition)
+		{	
+			if (temporary>diftemp[j])
+			{
+				temporary= diftemp[j];
+				target1=j;
+			}
+		}
+
+	}
+
+	local_position[target1]=2*nPoints*DX;
+	diftemp[target1]=abs(local_position[target1]-tposition);
+	
+	temporary= 2*nPoints*DX;
+	target2=0;
+	for(j=1;j<nPoints;j++)
+	{
+		if(local_position[j]> tposition)
+		{		
+			if (temporary>diftemp[j])
+			{
+				temporary= diftemp[j];
+				target2=j;
+			}
+		}
+	}
+
+
+
+}
+
+
+
+
 
 
 void FlameSolver::XRecord()
@@ -1052,6 +1038,8 @@ void FlameSolver::resizeAuxiliary()
     rho_old.setZero(nPoints);
     T_old.setZero(nPoints);
     DCvolume.setZero(nPoints);
+    position.setZero(nPoints);
+    uniformGrid.setZero(nPoints);
     drhodt.setZero(nPoints);
     Wmx.resize(nPoints);
     mu.resize(nPoints);
