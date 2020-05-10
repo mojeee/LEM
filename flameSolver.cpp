@@ -299,7 +299,7 @@ int FlameSolver::finishStep()
 
 	if (Check_flag%NTS_PE==0)
 		{
-			TM();
+			//TM();
 		}
 
 
@@ -599,8 +599,10 @@ void FlameSolver::DiffusionVelocityCalculator()
                 VC = - SUM;
 		for(k=0;k<nSpec;k++)
 		{
-                        dVel(k,j) = dVel(k,j) + Y(k,j)*VC;
-			
+			if (j<nPoints-1)
+			{                        
+				dVel(k,j) = dVel(k,j) + Y(k,j)*VC;
+			}
 		}
 	}
 
@@ -1037,6 +1039,7 @@ void FlameSolver::resizeAuxiliary()
     rho.setZero(nPoints);
     rho_old.setZero(nPoints);
     T_old.setZero(nPoints);
+    TB.setZero(nPoints);
     DCvolume.setZero(nPoints);
     position.setZero(nPoints);
     uniformGrid.setZero(nPoints);
@@ -1057,6 +1060,7 @@ void FlameSolver::resizeAuxiliary()
     jFick.setZero(nSpec, nPoints);
     dVel.setZero(nSpec, nPoints);
     Y_old.setZero(nSpec,nPoints);
+    YB.setZero(nSpec,nPoints);
     F.setZero(nSpec+3, nPoints);
     jSoret.setZero(nSpec, nPoints);
 
@@ -1232,23 +1236,44 @@ void FlameSolver::updateBC()
     }
 }
 
-void FlameSolver::updateChemicalProperties()
+/*void FlameSolver::updateChemicalProperties()
 {
 //	logFile.write(format("Hi moj 66666666666666666666666666666666666666666666666"));
     tbb::parallel_for(tbb::blocked_range<size_t>(0, nPoints,1),
                       TbbWrapper<FlameSolver>(&FlameSolver::updateChemicalProperties, this));
-}
-
-void FlameSolver::updateChemicalProperties(size_t j1, size_t j2)
+}*/
+//size_t j1, size_t j2
+void FlameSolver::updateChemicalProperties()
 {
+	assert(mathUtils::notnan(YB));
+
     CanteraGas& gas = gases.local();
     if (!gas.initialized()) {
         gas.setOptions(options);
         gas.initialize();
     }
+int k,j;
 //logFile.write(format("Hi moj 2"));
+	for (j=0;j<nPoints;j++)
+	{
+		TB(j)=T(j);
+		for(k=0;k<nSpec;k++)
+		{
+			YB(k,j)=Y(k,j);
+		}
+	}
+
+	for (j=0;j<nPoints-1;j++)
+	{
+		T(j)=(TB(j)+TB(j+1))/2.0;
+		for(k=0;k<nSpec;k++)
+		{
+			Y(k,j)=(YB(k,j)+YB(k,j+1))/2.0;
+		}
+	}
+		
     // Calculate auxiliary data
-    for (size_t j=j1; j<j2; j++) {
+    for (j=0; j<nPoints; j++) {
         // Thermodynamic properties
         thermoTimer.start();
         gas.setStateMass(&Y(0,j), T(j));
@@ -1278,6 +1303,14 @@ void FlameSolver::updateChemicalProperties(size_t j1, size_t j2)
         diffusivityTimer.stop();
         transportTimer.stop();
     }
+	for (j=0;j<nPoints;j++)
+	{
+		T(j)=TB(j);
+		for(k=0;k<nSpec;k++)
+		{
+			Y(k,j)=YB(k,j);
+		}
+	}
 //logFile.write(format("Hi moj 22222222222222222222222222222222222"));
 }
 

@@ -161,7 +161,7 @@ void setOptions(const ConfigOptions& options); //!< Set options read from the co
     void resizeMappedArrays(); //!< update data that shadows SplitSolver arrays
     void updateCrossTerms(); //!< calculates values of cross-component terms: jSoret, sumcpj, and jCorr
     void updateChemicalProperties(); //!< Update thermodynamic, transport, and kinetic properties
-    void updateChemicalProperties(size_t j1, size_t j2); //!< Update thermodynamic, transport, and kinetic properties
+  //  void updateChemicalProperties(size_t j1, size_t j2); //!< Update thermodynamic, transport, and kinetic properties
     void updateBC(); //!< Set boundary condition for left edge of domain
     void calculateQdot(); //!< Compute heat release rate using the current temperature and mass fractions
 
@@ -214,6 +214,8 @@ void setOptions(const ConfigOptions& options); //!< Set options read from the co
     dmatrix jSoret; //!< Soret mass flux [kg/m^2*s]
     dmatrix dVel;
     dmatrix Y_old;
+    dmatrix YB;
+    dvec TB;
 
     dmatrix F;
     // jCorr is a correction to force the net diffusion mass flux to be zero
