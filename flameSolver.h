@@ -95,6 +95,7 @@ public:
 	void CFUEL();
 	void XRecord();
 	void PREMIXADV();
+	void velocityCalculator();
 	void Find2NearPoints(int local);
 
 void setOptions(const ConfigOptions& options); //!< Set options read from the configuration file
@@ -194,6 +195,7 @@ void setOptions(const ConfigOptions& options); //!< Set options read from the co
     dvec T_old;
     dvec DCvolume;
     dvec position;
+    dvec U_velocity;// velocity matrix
     dvec uniformGrid;
     dvec drhodt; //!< time derivative of density [kg/m^3*s]
     dvec jCorr; //!< Correction to ensure sum of mass fractions = 1

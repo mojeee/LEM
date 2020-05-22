@@ -305,7 +305,12 @@ int FlameSolver::finishStep()
 
 	Check_flag=Check_flag+1;
 	
-	VolumeExpansion();
+	if (Check_flag%200==0)
+	{
+		velocityCalculator();
+		CFUEL();
+	}
+	//VolumeExpansion();
 
 
 /*	if (Check_flag%NTSPSIM==0 && NSIM_counter<=NSIM)
@@ -547,7 +552,7 @@ void FlameSolver::ReadParameters(Config& config)
 void FlameSolver::DiffusionVelocityCalculator()
 {
 	int j,k;
-	double SUM,VC;
+	double SUM,VC,Yavg;
         double Yp[nSpec][nPoints];
 	double XMF[nSpec][nPoints];
 	double XMFP[nSpec][nPoints];
@@ -599,21 +604,26 @@ void FlameSolver::DiffusionVelocityCalculator()
                 VC = - SUM;
 		for(k=0;k<nSpec;k++)
 		{
+			Yavg=(Y(k,j)+Y(k,j+1))/2.0;
 			if (j<nPoints-1)
 			{                        
-				dVel(k,j) = dVel(k,j) + Y(k,j)*VC;
+				dVel(k,j) = dVel(k,j) + Yavg*VC;
+			}
+			else
+			{
+				dVel(k,j)=dVel(k,j) + Y(k,j)*VC;
 			}
 		}
 	}
 
-	if(t==2e-9){
+	/*if(t==2e-9){
         ofstream proof ("diff_velocity.txt");
 	    
        	    for ( k= 0; k< nPoints; k++)
         	{
 			proof<< dVel(9,k) << "\n" ;
          	}
-            proof.close();}
+            proof.close();}*/
 	
 }
 
@@ -639,7 +649,8 @@ void FlameSolver::INIT_AllParameters()
 	U_velocity= config.velocity;
 	P =config.pressure;
         density = P*Wmx(nPoints-1)/(8.3144627*Temperature);
-        XMDOT    = density*U_velocity;
+        XMDOT    = rho(0)*U_velocity;
+	logFile.write(format("Hi moj1, the XMDOT is : %d ") %XMDOT);
 	XNU = config.kinematic_viscosity;
 	Re =  config.Re_t;
 	XLint = config.Intlength;
@@ -661,6 +672,25 @@ void FlameSolver::INIT_AllParameters()
 	
 }
 
+void FlameSolver::velocityCalculator()
+{
+
+	int j;
+	for (j=0;j<nPoints;j++)
+	{
+		
+		U_velocity(j)=XMDOT/rho(j);
+	}
+	
+        ofstream proof ("velocity.txt");
+	    
+       	    for ( j= 0; j< nPoints; j++)
+        	{
+			proof<< U_velocity(j) << "\n" ;
+         	}
+            proof.close();
+
+}
 
 void FlameSolver::Random_Number()
 {
@@ -822,31 +852,45 @@ void FlameSolver::CFUEL()
 // NFL set based on chemistry, you should find the CH4 location in Y matrix
 	int NSTAB;
 	double velocity,RHO2;
-	velocity=U(0);
+	velocity=U_velocity(0);
+        	logFile.write(format("*******************************************************************"));
+        	logFile.write(format("*******************************************************************"));
+        	logFile.write(format("hi moj, the size value   velocity : %d") %velocity);
+        	logFile.write(format("*******************************************************************"));
+        	logFile.write(format("*******************************************************************"));
 	RHO2=rho(0);
-	NSTAB = int(NCP1/3);
+        	logFile.write(format("hi moj, the size value   RHO2 : %d") %RHO2);
+	NSTAB = int(2*NCP1/5);
+        	logFile.write(format("hi moj, the size value   NSTAB : %d") %NSTAB);
+	double A=0.8*Y(NFL,0);
+        	logFile.write(format("hi moj, the size value   A : %d") %A);
+        	logFile.write(format("hi moj, the size value   Y(NFL,NSTAB) : %d") %Y(NFL,NSTAB));
+	XMDOT = RHO2*velocity;
+        	logFile.write(format("hi moj, the size value   XMDOT : %d") %XMDOT);
 // MILD CORRECTION
-      if(Y(NFL,NSTAB)< 0.80*Y(NFL,0)  && velocity<30.0)
+      if(Y(NFL,NSTAB)< A  && velocity<0.3)
 	{
-         velocity= velocity + 0.001;
+         velocity= velocity + 0.00001;
+        	logFile.write(format("hi moj 1"));
 	}
-      else if(Y(NFL,NSTAB+1)> 0.8*Y(NFL,0) && velocity> 15.0) 
+      else if(Y(NFL,NSTAB+1)> A && velocity> 0.15) 
 	{
-         velocity    = velocity - 0.0010;
+        	logFile.write(format("hi moj 2"));
+         velocity    = velocity - 0.00001;
 	}
 
 // AGRESSIVE CORRECTION
-      if(  Y(NFL,NSTAB-2) <= 0.80*Y(NFL,0) && velocity < 30.0) 
+      if(  Y(NFL,NSTAB-2) <= A && velocity < 0.3) 
 	{
-         velocity    = velocity + 0.01;
+         velocity    = velocity + 0.0001;
 	}
-      else if (  Y(NFL,NSTAB+3) > 0.80*Y(NFL,0) && velocity> 15.0) 	
+      else if (  Y(NFL,NSTAB+3) > A && velocity> 0.15) 	
 	{
-         velocity    = velocity - 0.01;
+         velocity    = velocity - 0.0001;
 	}
 
       XMDOT = RHO2*velocity;
-
+	//logFile.write(format("Hi moj2, the XMDOT is : %d ") %XMDOT);
 }
 
 void FlameSolver::PREMIXADV()
@@ -862,7 +906,7 @@ void FlameSolver::PREMIXADV()
       //----------------------INTERIOR MESH POINTS-----------------------------
 
       //INTERIOR CELLS
-      for( j = 1;j<nPoints;j++)
+      for( j = 1;j<nPoints-1;j++)
 	{
                	
 	        for (k = 0; k<nSpec; k++)
@@ -884,7 +928,7 @@ void FlameSolver::PREMIXADV()
 	        	{
 	           		SUMYK = SUMYK + Y(j,k);
 				//species molecular weights === XMWT
-	           		F(3+k,j) = XMDXM * ( Y(k,j)-Y(k,j-1) )*0.0;// convection term set to zero
+	           		F(3+k,j) = XMDXM * ( Y(k,j)-Y(k,j-1) );// convection term set to zero
 				F(3+k,j) = F(3+k,j) + (RHOP*dVel(k,j) - RHOM*dVel(k,j-1))/DX;
 				F(3+k,j) = F(3+k,j) - wDot(k,j)*W(k);
 				F(3+k,j) = - dt*F(3+k,j)/((RHOP + RHOM)/2.0);
@@ -898,18 +942,11 @@ void FlameSolver::PREMIXADV()
 	        for (k = 0; k<nSpec;k++)
 		{
 			TDOT = TDOT + wDot(k,j)*hk(k,j);
-			SUMX = SUMX + 0.25 * (RHOP*dVel(k,j) + RHOM*dVel(k,j-1)) *cpSpec(k,j)*(T(j+1)-T(j-1))/DX;
+			SUMX = SUMX + 0.25 * (RHOP*dVel(k,j) + RHOM*dVel(k,j-1)) *cpSpec(k,j)*(T(j+1)-T(j-1))/(DX*W(k));
 		}
 
-	        F(2,j) = (XMDOT*(T(j)-T(j-1))/DX)*0.0;// convection term set to zero
-		if ( j == ( nPoints - 1 ) )
-		 {
-			F(2,j) = F(2,j) +(lambda(j-1)*(T(j)-T(j-1))/DX)/(cp(j)*DX);
-		 }
-		else
-		 {
-			F(2,j) = F(2,j) -(lambda(j)*(T(j+1)-T(j))/DX-lambda(j-1)*(T(j)-T(j-1))/DX)/(cp(j)*DX);
-		 }		
+	        F(2,j) = (XMDOT*(T(j)-T(j-1))/DX);// convection term set to zero
+		F(2,j) = F(2,j) -(lambda(j)*(T(j+1)-T(j))/DX-lambda(j-1)*(T(j)-T(j-1))/DX)/(cp(j)*DX);		
 		F(2,j) = F(2,j) +(SUMX+TDOT)/cp(j);
 		F(2,j) = - dt*F(2,j)/((RHOP+ RHOM)/2.0);
 
@@ -1038,6 +1075,7 @@ void FlameSolver::resizeAuxiliary()
 
     rho.setZero(nPoints);
     rho_old.setZero(nPoints);
+    U_velocity.setZero(nPoints);
     T_old.setZero(nPoints);
     TB.setZero(nPoints);
     DCvolume.setZero(nPoints);
@@ -1275,34 +1313,39 @@ int k,j;
     // Calculate auxiliary data
     for (j=0; j<nPoints; j++) {
         // Thermodynamic properties
-        thermoTimer.start();
+        //thermoTimer.start();
         gas.setStateMass(&Y(0,j), T(j));
 	
-        rho[j] = gas.getDensity();
-        Wmx[j] = gas.getMixtureMolecularWeight();
-        cp[j] = gas.getSpecificHeatCapacity();
-        gas.getSpecificHeatCapacities(&cpSpec(0,j));
-        gas.getEnthalpies(&hk(0,j));
-        thermoTimer.stop();
+        rho[j] = gas.getDensity();//kg/m^3
+        Wmx[j] = gas.getMixtureMolecularWeight();//kg/kmol
+        gas.getDiffusionCoefficientsMole(&Dkm(0,j));// m^2/s
+        lambda[j] = gas.getThermalConductivity();// W/m *K
+
+        cp[j] = gas.getSpecificHeatCapacity();//J/kg*K
+        gas.getSpecificHeatCapacities(&cpSpec(0,j));//J/kmol*K
+        gas.getEnthalpies(&hk(0,j));// j/kmole of species by search in cantera documentation and chemistry0d.cpp
+
+        //thermoTimer.stop();
 
         // Transport Properties
-        transportTimer.start();
+        //transportTimer.start();
 
-        conductivityTimer.start();
-        lambda[j] = gas.getThermalConductivity();
-        conductivityTimer.stop();
+        //conductivityTimer.start();
 
-        viscosityTimer.start();
+        //conductivityTimer.stop();
+
+        //viscosityTimer.start();
         mu[j] = gas.getViscosity();
-        viscosityTimer.stop();
+        //viscosityTimer.stop();
 
-        diffusivityTimer.start();
+       // diffusivityTimer.start();
         gas.getWeightedDiffusionCoefficientsMass(&rhoD(0,j));
         gas.getThermalDiffusionCoefficients(&Dkt(0,j));
-        gas.getDiffusionCoefficientsMole(&Dkm(0,j));
-        diffusivityTimer.stop();
-        transportTimer.stop();
+
+        //diffusivityTimer.stop();
+       // transportTimer.stop();
     }
+
 	for (j=0;j<nPoints;j++)
 	{
 		T(j)=TB(j);
@@ -1311,6 +1354,19 @@ int k,j;
 			Y(k,j)=YB(k,j);
 		}
 	}
+	for (j=0;j<nPoints;j++)
+	{
+	   gas.setStateMass(&Y(0,j), T(j));
+     	   gas.getReactionRates(&wDot(0,j)); // kmol/m^2/s
+	}
+
+ofstream proof ("ddebug.txt");
+	    
+       	    for ( j= 0; j< nPoints; j++)
+        	{
+			proof<< rhoD(10,j) << "\t"<<  Dkm(10,j)<< "\n" ;
+         	}
+            proof.close();
 //logFile.write(format("Hi moj 22222222222222222222222222222222222"));
 }
 
@@ -1548,9 +1604,9 @@ void FlameSolver::calculateQdot()
         gas.setRateMultiplier(rateMultiplierFunction->a(tNow));
     }
     for (size_t j=0; j<nPoints; j++) {
-        gas.setStateMass(&Y(0,j), T(j));
+ /*       gas.setStateMass(&Y(0,j), T(j));
         gas.getEnthalpies(&hk(0,j));
-        gas.getReactionRates(&wDot(0,j));
+        gas.getReactionRates(&wDot(0,j));*/
         qDot[j] = - (wDot.col(j) * hk.col(j)).sum();
     }
     reactionRatesTimer.stop();
