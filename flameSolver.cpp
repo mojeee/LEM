@@ -308,7 +308,7 @@ int FlameSolver::finishStep()
 	if (Check_flag%200==0)
 	{
 		velocityCalculator();
-		CFUEL();
+		//CFUEL();
 	}
 	//VolumeExpansion();
 
