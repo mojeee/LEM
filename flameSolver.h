@@ -97,6 +97,7 @@ public:
 	void PREMIXADV();
 	void velocityCalculator();
 	void Find2NearPoints(int local);
+	void FindFlameSpeed();
 
 void setOptions(const ConfigOptions& options); //!< Set options read from the configuration file
     void initialize(); //!< call to generate profiles and perform one-time setup

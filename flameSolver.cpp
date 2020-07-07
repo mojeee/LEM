@@ -302,6 +302,10 @@ int FlameSolver::finishStep()
 			//TM();
 		}
 
+	if ((t/dt)==5)
+	{
+		FindFlameSpeed();
+	}
 
 	Check_flag=Check_flag+1;
 	
@@ -310,7 +314,7 @@ int FlameSolver::finishStep()
 		velocityCalculator();
 		//CFUEL();
 	}
-	//VolumeExpansion();
+	VolumeExpansion();
 
 
 /*	if (Check_flag%NTSPSIM==0 && NSIM_counter<=NSIM)
@@ -353,6 +357,34 @@ setupTimer.stop();
     nTotal++;
     return 0;
 }
+
+
+void FlameSolver::FindFlameSpeed()
+{
+
+	double Tavg,targetTemperature,targetPosition,difference1,difference;
+	Tavg= (T(0)+T(nPoints))/2
+	difference=2000;
+	difference1=1800;
+	for(j=0; j<nPoints; j++)
+	{
+		difference1= T(j)-Tavg;
+		if ( difference1<difference)
+		{
+			difference=difference1;
+			targetPosition=j;
+		}
+	}
+
+	targetTemperature=T(targetPosition);
+	logFile.write(format("Hi moj, the target Temperature is : %d ") %targetTemperature);
+
+
+}
+
+
+
+
 
 
 void FlameSolver::VolumeExpansion()
@@ -928,7 +960,7 @@ void FlameSolver::PREMIXADV()
 	        	{
 	           		SUMYK = SUMYK + Y(j,k);
 				//species molecular weights === XMWT
-	           		F(3+k,j) = XMDXM * ( Y(k,j)-Y(k,j-1) );// convection term set to zero
+	           		F(3+k,j) =0.0*XMDXM * ( Y(k,j)-Y(k,j-1) );// convection term set to zero
 				F(3+k,j) = F(3+k,j) + (RHOP*dVel(k,j) - RHOM*dVel(k,j-1))/DX;
 				F(3+k,j) = F(3+k,j) - wDot(k,j)*W(k);
 				F(3+k,j) = - dt*F(3+k,j)/((RHOP + RHOM)/2.0);
@@ -945,7 +977,7 @@ void FlameSolver::PREMIXADV()
 			SUMX = SUMX + 0.25 * (RHOP*dVel(k,j) + RHOM*dVel(k,j-1)) *cpSpec(k,j)*(T(j+1)-T(j-1))/(DX*W(k));
 		}
 
-	        F(2,j) = (XMDOT*(T(j)-T(j-1))/DX);// convection term set to zero
+	        F(2,j) =0.0*(XMDOT*(T(j)-T(j-1))/DX);// convection term set to zero
 		F(2,j) = F(2,j) -(lambda(j)*(T(j+1)-T(j))/DX-lambda(j-1)*(T(j)-T(j-1))/DX)/(cp(j)*DX);		
 		F(2,j) = F(2,j) +(SUMX+TDOT)/cp(j);
 		F(2,j) = - dt*F(2,j)/((RHOP+ RHOM)/2.0);
