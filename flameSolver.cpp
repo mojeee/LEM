@@ -386,17 +386,17 @@ void FlameSolver::FlamePositionCorrection()
 			
 			for(k=0;k<nSpec;k++)
 			 {
-				Y_transient(j,k)=Y(j,k);
+				Y_transient(k,j)=Y(k,j);
 			 }
 		 }
 
-		for(j=0;j<nPoints-1;j++)
+		for(j=0;j<(nPoints-1);j++)
 		 {
 			T(j+1)=T_transient(j);
 			
 			for(k=0;k<nSpec;k++)
 			 {
-				Y(j+1,k)=Y_transient(j,k);
+				Y(k,j+1)=Y_transient(k,j);
 			 }
 		 }
 		
@@ -1422,13 +1422,13 @@ int k,j;
      	   gas.getReactionRates(&wDot(0,j)); // kmol/m^2/s
 	}
 
-ofstream proof ("ddebug.txt");
+/*ofstream proof ("ddebug.txt");
 	    
        	    for ( j= 0; j< nPoints; j++)
         	{
 			proof<< rhoD(10,j) << "\t"<<  Dkm(10,j)<< "\n" ;
          	}
-            proof.close();
+            proof.close();*/
 //logFile.write(format("Hi moj 22222222222222222222222222222222222"));
 }
 
