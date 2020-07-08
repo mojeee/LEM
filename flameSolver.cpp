@@ -290,10 +290,8 @@ int FlameSolver::finishStep()
 
 // PREMIXADV FUNCTION -----------------------------------------------------------------------------------
 
-
 	PREMIXADV();
-
-	    
+  
 	logFile.write(format("Hi moj, the NTS_PE is : %i ") %NTS_PE);
 	logFile.write(format("Hi moj, the simulation number is : %i ") %Check_flag);
 
@@ -302,20 +300,17 @@ int FlameSolver::finishStep()
 			//TM();
 		}
 
-	if ((t/dt)==5)
-	{
-		FindFlameSpeed();
-	}
-
-	Check_flag=Check_flag+1;
+	FlamePositionCorrection();
 	
-	if (Check_flag%200==0)
+	/*if (Check_flag%200==0)
 	{
 		velocityCalculator();
 		//CFUEL();
-	}
+	}*/
+
 	VolumeExpansion();
 
+	Check_flag=Check_flag+1;
 
 /*	if (Check_flag%NTSPSIM==0 && NSIM_counter<=NSIM)
 	{
@@ -359,11 +354,12 @@ setupTimer.stop();
 }
 
 
-void FlameSolver::FindFlameSpeed()
+void FlameSolver::FlamePositionCorrection()
 {
 
 	double Tavg,targetTemperature,targetPosition,difference1,difference;
-	Tavg= (T(0)+T(nPoints))/2
+	int j,k;
+	/*Tavg= (T(0)+T(nPoints))/2;
 	difference=2000;
 	difference1=1800;
 	for(j=0; j<nPoints; j++)
@@ -376,8 +372,36 @@ void FlameSolver::FindFlameSpeed()
 		}
 	}
 
-	targetTemperature=T(targetPosition);
-	logFile.write(format("Hi moj, the target Temperature is : %d ") %targetTemperature);
+	targetTemperature=T(targetPosition);*/
+
+	
+
+	movement=movement+unitmovement;
+
+	if ((movement/DX)>= 1.0)
+	 {
+		for(j=0;j<nPoints;j++)
+		 {
+			T_transient(j)=T(j);
+			
+			for(k=0;k<nSpec;k++)
+			 {
+				Y_transient(j,k)=Y(j,k);
+			 }
+		 }
+
+		for(j=0;j<nPoints-1;j++)
+		 {
+			T(j+1)=T_transient(j);
+			
+			for(k=0;k<nSpec;k++)
+			 {
+				Y(j+1,k)=Y_transient(j,k);
+			 }
+		 }
+		
+		movement=movement-1;
+	 }
 
 
 }
@@ -552,20 +576,20 @@ void FlameSolver::ReadParameters(Config& config)
     string line;
     while (getline(fin, line)) {
         istringstream sin(line.substr(line.find("=") + 1));
-        if (line.find("endtime") != -1)
-            sin >> config.endtime;
-        else if (line.find("timestep") != -1)
-            sin >> config.timestep;
-        else if (line.find("Re_t") != -1)
+        //if (line.find("endtime") != -1)
+          //  sin >> config.endtime;
+        //else if (line.find("timestep") != -1)
+          //  sin >> config.timestep;
+        if (line.find("Re_t") != -1)
             sin >> config.Re_t;
         else if (line.find("dom") != -1)
             sin >> config.dom;
         else if (line.find("pressure") != -1)
             sin >> config.pressure;
-        else if (line.find("u") != -1)
-            sin >> config.velocity;
-        else if (line.find("T") != -1)
-            sin >> config.Th; // GET_RHO_U
+        //else if (line.find("u") != -1)
+           // sin >> config.velocity;
+        //else if (line.find("T") != -1)
+          //  sin >> config.Th; // GET_RHO_U
         else if (line.find("kinematic_viscosity") != -1)
             sin >> config.kinematic_viscosity;
         else if (line.find("GFAC") != -1)
@@ -574,10 +598,12 @@ void FlameSolver::ReadParameters(Config& config)
 	    sin >> config.FAL;
         else if (line.find("Intlength") != -1)
             sin >> config.Intlength;
-        else if (line.find("NofRperR") != -1)
-            sin >> config.NofRperR;
-        else if (line.find("NSPE") != -1)
-            sin >> config.NSPE;
+        else if (line.find("Sl") != -1)
+            sin >> config.Sl;
+        else if (line.find("Clambda") != -1)
+            sin >> config.Clambda;
+        else if (line.find("Neta") != -1)
+            sin >> config.Neta;
 
     }
 }
@@ -664,30 +690,32 @@ void FlameSolver::INIT_AllParameters()
 	Config config;
         ReadParameters(config);
 	double Temperature,U_velocity,density;
-	dt=config.timestep;
-	NTS  = config.endtime/dt;	
+	//dt=config.timestep;
+	//NTS  = config.endtime/dt;	
 	DOM = config.dom;
 	NC= nPoints;
 	NCM1=NC-1;
 	NCP1=nPoints+1;
 	DX=DOM/NCM1;
-	XMDT = dt/DX;	
+	//XMDT = dt/DX;	
 	GFAC=config.GFAC;
 	NFL=config.FAL;
-	NSIM =config.NofRperR ;
-	NTSPSIM=config.NSPE ;
+	flamevelocity= config.Sl;
+	unitmovement= flamevelocity*dt;
+	//NSIM =config.NofRperR ;
+	//NTSPSIM=config.NSPE ;
  	NTS_COUNT = 0;
-	Temperature= config.Th;
-	U_velocity= config.velocity;
+	//Temperature= config.Th;
+	//U_velocity= config.velocity;
 	P =config.pressure;
-        density = P*Wmx(nPoints-1)/(8.3144627*Temperature);
-        XMDOT    = rho(0)*U_velocity;
-	logFile.write(format("Hi moj1, the XMDOT is : %d ") %XMDOT);
+        //density = P*Wmx(nPoints-1)/(8.3144627*Temperature);
+        //XMDOT    = rho(0)*U_velocity;
+	//logFile.write(format("Hi moj1, the XMDOT is : %d ") %XMDOT);
 	XNU = config.kinematic_viscosity;
 	Re =  config.Re_t;
 	XLint = config.Intlength;
-	XLk   = 4*XLint/pow(Re,0.75);
-	C_lambda = 15.0 ;
+	XLk   = (config.Neta)*XLint/pow(Re,0.75);
+	C_lambda = config.Clambda ;
 	Rate = DOM*100*(54.0/5.0)*( XNU*Re / (C_lambda*pow(XLint,3)) )*( pow((XLint/XLk),(5/3)) - 1)/( 1 - pow((XLk/XLint),(4/3)) );
 	NTS_PE = (1.0/Rate)/dt+1;
 	PDFA = pow(XLint,(5.0/3.0)) * pow(XLk,(-5.0/3.0)) / ( pow((XLint/XLk),(5.0/3.0)) -1.0 );
@@ -1109,6 +1137,7 @@ void FlameSolver::resizeAuxiliary()
     rho_old.setZero(nPoints);
     U_velocity.setZero(nPoints);
     T_old.setZero(nPoints);
+    T_transient.setZero(nPoints);
     TB.setZero(nPoints);
     DCvolume.setZero(nPoints);
     position.setZero(nPoints);
@@ -1130,6 +1159,7 @@ void FlameSolver::resizeAuxiliary()
     jFick.setZero(nSpec, nPoints);
     dVel.setZero(nSpec, nPoints);
     Y_old.setZero(nSpec,nPoints);
+    Y_transient.setZero(nSpec,nPoints);
     YB.setZero(nSpec,nPoints);
     F.setZero(nSpec+3, nPoints);
     jSoret.setZero(nSpec, nPoints);
