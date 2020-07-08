@@ -297,7 +297,7 @@ int FlameSolver::finishStep()
 
 	if (Check_flag%NTS_PE==0)
 		{
-			//TM();
+			TM();
 		}
 
 	FlamePositionCorrection();
