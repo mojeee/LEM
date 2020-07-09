@@ -51,8 +51,10 @@ public:
 	int NCM1;
 	int print_counter=0;
 	double flamevelocity,unitmovement;
-	double movement=0;
+	double movement=0.0;
 	int NCP1;
+	int movecount;
+	int moveflag=0;
 	double DX;
 	double TAU;
 	double XLint;

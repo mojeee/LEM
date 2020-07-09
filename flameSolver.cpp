@@ -295,12 +295,12 @@ int FlameSolver::finishStep()
 	logFile.write(format("Hi moj, the NTS_PE is : %i ") %NTS_PE);
 	logFile.write(format("Hi moj, the simulation number is : %i ") %Check_flag);
 
-	if (Check_flag%NTS_PE==0)
+	if ((Check_flag%NTS_PE)==0)
 		{
 			TM();
 		}
 
-	FlamePositionCorrection();
+
 	
 	/*if (Check_flag%200==0)
 	{
@@ -309,6 +309,8 @@ int FlameSolver::finishStep()
 	}*/
 
 	VolumeExpansion();
+
+	FlamePositionCorrection();
 
 	Check_flag=Check_flag+1;
 
@@ -377,8 +379,14 @@ void FlameSolver::FlamePositionCorrection()
 	
 
 	movement=movement+unitmovement;
+	movecount=DX/unitmovement;
+		logFile.write(format("Hi moj, the move count is : %d ") %movecount);
+		logFile.write(format("Hi moj, the movement is : %d ") %(12300*unitmovement));
+		logFile.write(format("Hi moj, the DX is : %d ") %(100*DX));
 
-	if ((movement/DX)>= 1.0)
+
+
+	if ((Check_flag%movecount) == 0)
 	 {
 		for(j=0;j<nPoints;j++)
 		 {
@@ -390,7 +398,7 @@ void FlameSolver::FlamePositionCorrection()
 			 }
 		 }
 
-		for(j=0;j<(nPoints-1);j++)
+		for(j=0;j<nPoints-1;j++)
 		 {
 			T(j+1)=T_transient(j);
 			
@@ -399,10 +407,10 @@ void FlameSolver::FlamePositionCorrection()
 				Y(k,j+1)=Y_transient(k,j);
 			 }
 		 }
-		
-		movement=movement-1;
-	 }
 
+		moveflag=moveflag+1;
+	 }
+		logFile.write(format("Hi moj, the moveflag is : %d ") %moveflag);
 
 }
 
