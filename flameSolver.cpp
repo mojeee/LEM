@@ -708,7 +708,7 @@ void FlameSolver::INIT_AllParameters()
 	//XMDT = dt/DX;	
 	GFAC=config.GFAC;
 	NFL=config.FAL;
-	flamevelocity= config.Sl;
+	flamevelocity= (config.Sl)*1.7;
 	unitmovement= flamevelocity*dt;
 	//NSIM =config.NofRperR ;
 	//NTSPSIM=config.NSPE ;
@@ -719,12 +719,23 @@ void FlameSolver::INIT_AllParameters()
         //density = P*Wmx(nPoints-1)/(8.3144627*Temperature);
         //XMDOT    = rho(0)*U_velocity;
 	//logFile.write(format("Hi moj1, the XMDOT is : %d ") %XMDOT);
-	XNU = config.kinematic_viscosity;
+	//XNU = config.kinematic_viscosity;
+	XNU=0;
+	for (int j=0;j<nPoints;j++)
+	{
+		
+		XNU=XNU+10000*(mu(j)/rho(j))/nPoints;
+	}
+		logFile.write(format("Hi moj, the kinematic viscosity is : %d ") %XNU);
+		logFile.write(format("Hi moj, the dynamic is : %d ") %mu(5));
+		logFile.write(format("Hi moj, the rho is : %d ") %rho(5));
 	Re =  config.Re_t;
 	XLint = config.Intlength;
-	XLk   = (config.Neta)*XLint/pow(Re,0.75);
+	XLk   = (config.Neta)*XLint/pow(Re,0.75);;
 	C_lambda = config.Clambda ;
 	Rate = DOM*100*(54.0/5.0)*( XNU*Re / (C_lambda*pow(XLint,3)) )*( pow((XLint/XLk),(5/3)) - 1)/( 1 - pow((XLk/XLint),(4/3)) );
+		logFile.write(format("Hi moj, the Rate is : %d ") %Rate);
+		logFile.write(format("Hi moj, the dt is : %d ") %dt);
 	NTS_PE = (1.0/Rate)/dt+1;
 	PDFA = pow(XLint,(5.0/3.0)) * pow(XLk,(-5.0/3.0)) / ( pow((XLint/XLk),(5.0/3.0)) -1.0 );
         PDFB = -pow(XLint,(5.0/3.0))/(  pow((XLint/XLk),(5.0/3.0)) -1.0 );
