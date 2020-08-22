@@ -74,6 +74,7 @@ public:
 	int error_flag=0;
 	double check_velocity;
 	int target1,target2;
+	int sizedatacounter=0;
 	struct Config 
 	{
     		double endtime;
@@ -211,6 +212,7 @@ public:
     	dvec Wmx; //!< mixture molecular weight [kg/kmol]
     	dvec W; //!< species molecular weights [kg/kmol]
     	dvec mu; //!< dynamic viscosity [Pa*s]
+	dvec sizedata;
     	dvec lambda; //!< thermal conductivity [W/m*K]
     	dvec cp; //!< mixture heat capacity [J/kg*K]
     	dmatrix cpSpec; //!< species molar heat capacities [J/kmol*K]

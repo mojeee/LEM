@@ -285,6 +285,13 @@ int FlameSolver::finishStep()
 	
 	DiffusionVelocityCalculator();
 	
+	        ofstream poof ("Size_TripleMap.txt");
+	    
+       	    for ( int k= 0; k< sizedatacounter; k++)
+        	{
+			poof<< sizedata(k) << "\n" ;
+         	}
+            poof.close();
 //	logFile.write(format("Hi moj, the counter number in the loop for solving flame is : %i ") %Check_flag );
 			// PREMIXADV should be located here ------- PREMIX ADVANCEMENT IN TIME
 
@@ -298,6 +305,8 @@ int FlameSolver::finishStep()
 	if ((Check_flag%NTS_PE)==0)
 		{
 			TM();
+       sizedata(sizedatacounter)=L;
+	sizedatacounter=sizedatacounter+1;
 		}
 
 
@@ -380,9 +389,9 @@ void FlameSolver::FlamePositionCorrection()
 
 	movement=movement+unitmovement;
 	movecount=DX/unitmovement;
-		logFile.write(format("Hi moj, the move count is : %d ") %movecount);
+		/*logFile.write(format("Hi moj, the move count is : %d ") %movecount);
 		logFile.write(format("Hi moj, the movement is : %d ") %(12300*unitmovement));
-		logFile.write(format("Hi moj, the DX is : %d ") %(100*DX));
+		logFile.write(format("Hi moj, the DX is : %d ") %(100*DX));*/
 
 
 
@@ -410,7 +419,7 @@ void FlameSolver::FlamePositionCorrection()
 
 		moveflag=moveflag+1;
 	 }
-		logFile.write(format("Hi moj, the moveflag is : %d ") %moveflag);
+	//	logFile.write(format("Hi moj, the moveflag is : %d ") %moveflag);
 
 }
 
@@ -708,7 +717,7 @@ void FlameSolver::INIT_AllParameters()
 	//XMDT = dt/DX;	
 	GFAC=config.GFAC;
 	NFL=config.FAL;
-	flamevelocity= (config.Sl)*1.7;
+	flamevelocity= (config.Sl)*2.2;
 	unitmovement= flamevelocity*dt;
 	//NSIM =config.NofRperR ;
 	//NTSPSIM=config.NSPE ;
@@ -726,9 +735,9 @@ void FlameSolver::INIT_AllParameters()
 		
 		XNU=XNU+10000*(mu(j)/rho(j))/nPoints;
 	}
-		logFile.write(format("Hi moj, the kinematic viscosity is : %d ") %XNU);
+		/*logFile.write(format("Hi moj, the kinematic viscosity is : %d ") %XNU);
 		logFile.write(format("Hi moj, the dynamic is : %d ") %mu(5));
-		logFile.write(format("Hi moj, the rho is : %d ") %rho(5));
+		logFile.write(format("Hi moj, the rho is : %d ") %rho(5));*/
 	Re =  config.Re_t;
 	XLint = config.Intlength;
 	XLk   = (config.Neta)*XLint/pow(Re,0.75);;
@@ -809,6 +818,15 @@ void FlameSolver::eddyLength()
         {
                 L=NSize+1;
         }
+/*if(t==2e-9){
+        ofstream proof ("diff_velocity.txt");
+	    
+       	    for ( k= 0; k< nPoints; k++)
+        	{
+			proof<< dVel(9,k) << "\n" ;
+         	}
+            proof.close();}*/
+
 	
 }
 
@@ -1154,6 +1172,7 @@ void FlameSolver::resizeAuxiliary()
 
     rho.setZero(nPoints);
     rho_old.setZero(nPoints);
+    sizedata.setZero(100000);
     U_velocity.setZero(nPoints);
     T_old.setZero(nPoints);
     T_transient.setZero(nPoints);
