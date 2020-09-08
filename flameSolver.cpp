@@ -305,8 +305,8 @@ int FlameSolver::finishStep()
 	if ((Check_flag%NTS_PE)==0)
 		{
 			TM();
-       sizedata(sizedatacounter)=L;
-	sizedatacounter=sizedatacounter+1;
+     			  sizedata(sizedatacounter)=L;
+			  sizedatacounter=sizedatacounter+1;
 		}
 
 
@@ -385,7 +385,18 @@ void FlameSolver::FlamePositionCorrection()
 
 	targetTemperature=T(targetPosition);*/
 
-	
+	if (t<=0.05)
+	{
+		unitmovement= flamevelocity*dt;
+	}
+	else if ( t>0.005 && t<= 0.012)
+	{
+		unitmovement= 2*flamevelocity*dt;
+	}
+	else
+	{
+		unitmovement= 1.3*flamevelocity*dt;
+	}
 
 	movement=movement+unitmovement;
 	movecount=DX/unitmovement;
@@ -717,8 +728,8 @@ void FlameSolver::INIT_AllParameters()
 	//XMDT = dt/DX;	
 	GFAC=config.GFAC;
 	NFL=config.FAL;
-	flamevelocity= (config.Sl)*2.2;
-	unitmovement= flamevelocity*dt;
+	flamevelocity= (config.Sl);
+
 	//NSIM =config.NofRperR ;
 	//NTSPSIM=config.NSPE ;
  	NTS_COUNT = 0;
@@ -729,20 +740,28 @@ void FlameSolver::INIT_AllParameters()
         //XMDOT    = rho(0)*U_velocity;
 	//logFile.write(format("Hi moj1, the XMDOT is : %d ") %XMDOT);
 	//XNU = config.kinematic_viscosity;
-	XNU=0;
+
+	XLint = config.Intlength;
+	C_lambda = config.Clambda ;
+	
+	Rate=0;
 	for (int j=0;j<nPoints;j++)
 	{
-		
-		XNU=XNU+10000*(mu(j)/rho(j))/nPoints;
+		XNU=(mu(j)/rho(j));
+		Re=2.16*0.01*XLint/XNU;
+		XLk   = (config.Neta)*XLint/pow(Re,0.75);
+		XNU=(10000)*(mu(j)/rho(j));
+	   Rate =Rate+DOM*100*(54.0/5.0)*( XNU*Re/(C_lambda*pow(XLint,3)) )*( pow((XLint/XLk),(5/3)) - 1)/( 1 - pow((XLk/XLint),(4/3)) );
 	}
-		/*logFile.write(format("Hi moj, the kinematic viscosity is : %d ") %XNU);
+
+	Rate=Rate/nPoints;
+		logFile.write(format("Hi moj, the kinematic viscosity is : %d ") %XNU);
 		logFile.write(format("Hi moj, the dynamic is : %d ") %mu(5));
-		logFile.write(format("Hi moj, the rho is : %d ") %rho(5));*/
-	Re =  config.Re_t;
-	XLint = config.Intlength;
-	XLk   = (config.Neta)*XLint/pow(Re,0.75);;
-	C_lambda = config.Clambda ;
-	Rate = DOM*100*(54.0/5.0)*( XNU*Re / (C_lambda*pow(XLint,3)) )*( pow((XLint/XLk),(5/3)) - 1)/( 1 - pow((XLk/XLint),(4/3)) );
+		logFile.write(format("Hi moj, the rho is : %d ") %rho(5));
+	//Re =  config.Re_t;
+	//XLk   = (config.Neta)*XLint/pow(Re,0.75);
+	//XNU=config.kinematic_viscosity;
+	//Rate = DOM*100*(54.0/5.0)*( XNU*Re / (C_lambda*pow(XLint,3)) )*( pow((XLint/XLk),(5/3)) - 1)/( 1 - pow((XLk/XLint),(4/3)) );
 		logFile.write(format("Hi moj, the Rate is : %d ") %Rate);
 		logFile.write(format("Hi moj, the dt is : %d ") %dt);
 	NTS_PE = (1.0/Rate)/dt+1;
