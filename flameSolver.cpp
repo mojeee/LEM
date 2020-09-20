@@ -385,17 +385,17 @@ void FlameSolver::FlamePositionCorrection()
 
 	targetTemperature=T(targetPosition);*/
 
-	if (t<=0.05)
+	if (t<=0.003)
 	{
 		unitmovement= flamevelocity*dt;
 	}
-	else if ( t>0.005 && t<= 0.012)
+	else if ( t>0.003 && t<= 0.015)
 	{
-		unitmovement= 2*flamevelocity*dt;
+		unitmovement= 2.2*flamevelocity*dt;
 	}
-	else
+	else if ( t>0.015 && t<= 0.04)
 	{
-		unitmovement= 1.3*flamevelocity*dt;
+		unitmovement= 1.7*flamevelocity*dt;
 	}
 
 	movement=movement+unitmovement;

@@ -107,7 +107,6 @@ public:
 	void setOptions(const ConfigOptions& options); //!< Set options read from the configuration file
     	void initialize(); //!< call to generate profiles and perform one-time setup
     	void finalize();
-
     	//! Load initial temperature, mass fraction and velocity profiles.
     	//! Profiles are loaded either from an HDF5 "restart" file or from the
     	//! the ConfigOptions object, populated from the Python "Config" object.
