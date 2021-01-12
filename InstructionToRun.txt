@@ -1,4 +1,13 @@
-A short instruction to run the code and post-prosesing is provided: 
+A short instruction to run the code and post-processing is provided: 
+
+
+1- install CANTERA with all required libraries
+
+2- Replace the 'flameSolver.cpp' and 'flameSolver.h' to ~/src/
+
+3- Install EMBER from repositoy in README with all required libraries ( use scons build and install everytime make a change in 'flameSolver.cpp' and 'flameSolver.h' )
+
+4- 
 
 
 
