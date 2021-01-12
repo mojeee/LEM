@@ -51,7 +51,8 @@ The dataset includes the following files:
 
 Notes
 ==================
-         Data will be captured in specific time, find it in 'K6_LEM.py' and EMBER website. "http://speth.github.io/ember-doc/sphinx/html/index.html"
+         Data will be captured in specific time, find it in 'K6_LEM.py' and EMBER website.
+         "http://speth.github.io/ember-doc/sphinx/html/index.html"
          
          This function jus uses the chemistry input of the EMBER code and don't use any function in EMBER
          
