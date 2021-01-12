@@ -5,23 +5,45 @@ Author: Mojtaba Amini
 
 Email: Mojtaba.amini.1995@gmail.com
 
+Supervisor: Professor Mohammad Mahdi Salehi
+
 ==================================================================
 
 
-Direct calculation of production or consumption rate of all species in the reaction is a severe task, Terefore the statistical method such as RANS or LES is used for calculating species changing rate. In addition, some methods like FLAMELET would be used for the simulation of the interactions between kinetic and turbulence. Terefore the LEM (Linear Eddy Model) had been implemented in the CANTERA (Open Source Library) for simulating one-dimensional and semi one-dimensional ﬂame with diﬀerent kinetic. Also, the viscosity and molecular diﬀusion are implemented similar to a laminar ﬂame, but turbulence eﬀect is implemented by using Triplet Map (TM) (Stochastic advection), and the LEM model can simulate a wide variety of ﬂames with different fuel and physics. In the end, the model creates a database like DNS which uses the statistical results of the database to determine the PDF, SDR, wasting rate of variable, and comparing with DNS and experimental results
+Direct calculation of production or consumption rate of all species in the reaction is a challenging task. Therefore the statistical method such as RANS or LES is used for calculating species changing rate. Also, some methods like FLAMELET would be used to simulate the interactions between kinetic and turbulence. Therefore the LEM (Linear Eddy Model) was implemented in the CANTERA (Open Source Library) to simulate one-dimensional and semi one-dimensional ﬂame with diﬀerent kinetic. The viscosity and molecular diﬀusion are implemented similar to a laminar ﬂame, and turbulence eﬀect is implemented by using Triplet Map (TM) (Stochastic advection). The LEM model can simulate a wide variety of ﬂames with different fuels and physics. In the end, the model creates a database like DNS, which uses the statistical results of the database to determine the PDF, SDR, wasting rate of variable, and comparing with DNS and experimental results
 
 
-For each record it is provided:
+For each record, it is provided:
 
 
 The dataset includes the following files:
+
 'README.txt'
 
-'TidyData.csv' : 
+'All_Matlab_Code.m':  Almost all the essential function for post-processing is provided in each section. Also, there is enough comment for each section.
 
-'run_analysis.R' : 
+'COnditionalAverageCompare.m' : For conditional Average calculation
+
+'LaminarFlameSpeed.py': It calculates the flame speed with CANTERA code for the first estimation.
+
+'F1_flame_case_for_Triplet.py': It will be used for initial condition calculation.
+
+'InstructionToRun.txt': A short instruction to run LEM code
+
+'K6_LEM.py': It will be used to run a job. 
+
+'ModifiedreadDNS.m': For reading DNS data
+
+'Smooke.cti': Reduced mechanism that is used in the calculation. 
+
+'config.txt': Problem configuration that is used to run a job by 'K6_LEM.py'
+
+'flameSolver.cpp': Ember function that will be replaced with original files ( LEM functions are implemented here )
+
+'flameSolver.h': Ember function that will be replaced with original files ( LEM functions are implemented here )
+
 
 Notes:
 
 
-Mojtaba Amini. March 2020.
+Mojtaba Amini. January 2021.
