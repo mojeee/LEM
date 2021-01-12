@@ -1,9 +1,9 @@
 Turbulent Premixed Combustion modeling using The linear eddy model
 Version 1.0
 ==================================================================
-###Author: Mojtaba Amini###
-###Email: Mojtaba.amini.1995@gmail.com###
-###Supervisor: Professor Mohammad Mahdi Salehi###
+### Author: Mojtaba Amini ###
+### Email: Mojtaba.amini.1995@gmail.com ###
+### Supervisor: Professor Mohammad Mahdi Salehi ###
 
 Abstract
 -------------------------
