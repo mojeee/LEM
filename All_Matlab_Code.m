@@ -2,10 +2,12 @@
 % clear all;
 clc;
 cd 'F:\test\DNS_cases\LaminarFlameSpeedNewMechanism\LEMNewFrequencyEquation82(copy)\Turbulence_K74';
+
+% This section is used to Read data
 % Number of Profile saved
 NoPs=12450;
-
 % read all data of ember code from h5py file
+% it can be written much easier but this version was developed in a limited time
 for i=1:NoPs
     
     if i<=9
@@ -15,7 +17,7 @@ for i=1:NoPs
         profile=string1+number;
         profile2=profile+string2;
         Temperature(:,i)=h5read(profile2,'/T');
-%         species(:,:,i)=h5read(profile2,'/Y');
+        species(:,:,i)=h5read(profile2,'/Y');
         position=h5read(profile2,'/x');
     
     
@@ -27,7 +29,7 @@ for i=1:NoPs
         profile=string1+number;
         profile2=profile+string2;
         Temperature(:,i)=h5read(profile2,'/T');
-%         species(:,:,i)=h5read(profile2,'/Y');
+        species(:,:,i)=h5read(profile2,'/Y');
         position=h5read(profile2,'/x');
         
      elseif i>99 && i<=999
@@ -38,7 +40,7 @@ for i=1:NoPs
          profile=string1+number;
          profile2=profile+string2;
          Temperature(:,i)=h5read(profile2,'/T');
-%          species(:,:,i)=h5read(profile2,'/Y');
+         species(:,:,i)=h5read(profile2,'/Y');
          position=h5read(profile2,'/x');
      
     elseif i>999 && i<=9999
@@ -49,7 +51,7 @@ for i=1:NoPs
          profile=string1+number;
          profile2=profile+string2;
          Temperature(:,i)=h5read(profile2,'/T');
-%          species(:,:,i)=h5read(profile2,'/Y');
+         species(:,:,i)=h5read(profile2,'/Y');
          position=h5read(profile2,'/x');
      elseif i>9999 && i<NoPs
          
@@ -59,7 +61,7 @@ for i=1:NoPs
          profile=string1+number;
          profile2=profile+string2;
          Temperature(:,i)=h5read(profile2,'/T');
-%          species2(:,:,i-9999)=h5read(profile2,'/Y');
+         species2(:,:,i-9999)=h5read(profile2,'/Y');
          position=h5read(profile2,'/x');
         
     end
@@ -98,12 +100,15 @@ load 'Yi[2].mat';
 
 
 %%
-
+% density is missing in calculation so this section calculate the density and should be changed by chamistry
 % density calculation
 pressure=101325;
 R=8.314;
+% molecular weight
 W=[2.01 1.00 15.99 31.99 17.00 18.01 33.00 34.01 15.03 16.04 28.01 44.00 29.01 30.02 31.03 28.01]; 
 W=W/1000;
+% 3850 is number of 1D cell 
+%19998 is number of profile saved
  meanweight=zeros(3850,19998);
  %%
 for i=1:3850
@@ -143,6 +148,7 @@ end
 
 
 %%
+% each property will be saved seperately for further calculation
 
 cd 'F:\test\Data\A1';
 
@@ -152,7 +158,7 @@ save('RhoLEMlambda2ka6.mat','density');
 
 %%
 
-
+% for flame speed calculation
 
 % so wdotCO2 is 3850 by 20000
 
@@ -343,7 +349,7 @@ clear a;
 clear end1;
 
 %%
-%initial condition
+%initial condition drawing
 cd 'F:\test\DNS_cases\LaminarFlameSpeedNewMechanism\LEMNewFrequencyEquation84(copy)';
 
 profile2="prof000062.h5";
