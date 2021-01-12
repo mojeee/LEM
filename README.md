@@ -39,7 +39,7 @@ Files  | Description
 
 Notes
 --------------------------
-* Data will be captured in specific time, find it in 'K6_LEM.py' and EMBER website.
+* Data will be captured in specific time, find more information in 'K6_LEM.py' and EMBER website.
        [EMBER Repository](http://speth.github.io/ember-doc/sphinx/html/index.html "EMBER Repository")
 * This function jus uses the chemistry input of the EMBER code and don't use any function in EMBER
 * To reduce the time it is necessary to developed the code separately
