@@ -1,0 +1,10 @@
+Re_t = 32
+dom = 0.01
+pressure = 101325
+kinematic_viscosity = 0.1818
+GFAC = 1.0
+FAL = 1.0
+Intlength = 0.1196
+Sl= 0.161
+Clambda = 2.0
+Neta = 1.08
