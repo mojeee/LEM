@@ -6,6 +6,8 @@ Author: Mojtaba Amini
 Email: Mojtaba.amini.1995@gmail.com
 
 Supervisor: Professor Mohammad Mahdi Salehi
+
+Abstract
 ==================================================================
 
 
@@ -14,7 +16,8 @@ Direct calculation of production or consumption rate of all species in the react
 
 For each record, it is provided:
 
-
+Files
+====================================================
 The dataset includes the following files:
 
 'README.txt'
@@ -46,10 +49,14 @@ The dataset includes the following files:
 
 
 
-Notes:
+Notes
+==================
          Data will be captured in specific time, find it in 'K6_LEM.py' and EMBER website. "http://speth.github.io/ember-doc/sphinx/html/index.html"
+         
          This function jus uses the chemistry input of the EMBER code and don't use any function in EMBER
+         
          To reduce the time it is necessary to developed the code separately 
+         
          For a problem with 3850 nodes and 18 species on a normal computer systems, it will take almost 2 days to get output.
 
 Mojtaba Amini. January 2021.
