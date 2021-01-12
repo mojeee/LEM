@@ -17,7 +17,7 @@ Direct calculation of production or consumption rate of all species in the react
 For each record, it is provided:
 
 Files
-====================================================
+==================
 The dataset includes the following files:
 
 'README.txt'
