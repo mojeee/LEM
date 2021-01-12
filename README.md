@@ -22,55 +22,27 @@ The dataset includes the following files:
 
 Files  | Description
 ------------- | -------------
-'README.txt'  | Content Cell
+'README.txt'  | 
 'All_Matlab_Code.m'  | Almost all the essential function for post-processing is provided in each section. Also, there is enough comment for each section.
-Content Cell  | Content Cell
-Content Cell  | Content Cell
-Content Cell  | Content Cell
-Content Cell  | Content Cell
-Content Cell  | Content Cell
-Content Cell  | Content Cell
-Content Cell  | Content Cell
-Content Cell  | Content Cell
-Content Cell  | Content Cell
-
-
-
-
-'COnditionalAverageCompare.m' : For conditional Average calculation
-
-'LaminarFlameSpeed.py': It calculates the flame speed with CANTERA code for the first estimation.
-
-'F1_flame_case_for_Triplet.py': It will be used for initial condition calculation.
-
-'InstructionToRun.txt': A short instruction to run LEM code
-
-'K6_LEM.py': It will be used to run a job. 
-
-'ModifiedreadDNS.m': For reading DNS data
-
-'Smooke.cti': Reduced mechanism that is used in the calculation. 
-
-'config.txt': Problem configuration that is used to run a job by 'K6_LEM.py'
-
-'flameSolver.cpp': Ember function that will be replaced with original files ( LEM functions are implemented here )
-
-'flameSolver.h': Ember function that will be replaced with original files ( LEM functions are implemented here )
-
-
-
+'COnditionalAverageCompare.m'  | For conditional Average calculation
+'LaminarFlameSpeed.py'  | It calculates the flame speed with CANTERA code for the first estimation.
+'F1_flame_case_for_Triplet.py'  | It will be used for initial condition calculation.
+'InstructionToRun.txt'  | A short instruction to run LEM code
+'K6_LEM.py'  | It will be used to run a job. 
+'ModifiedreadDNS.m' | For reading DNS data
+'Smooke.cti'  | Reduced mechanism that is used in the calculation.
+'config.txt' | Problem configuration that is used to run a job by 'K6_LEM.py'
+'flameSolver.cpp'  | Ember function that will be replaced with original files ( LEM functions are implemented here )
+'flameSolver.h'  | Ember function that will be replaced with original files ( LEM functions are implemented here )
 
 
 
 Notes
 --------------------------
-         Data will be captured in specific time, find it in 'K6_LEM.py' and EMBER website.
+         *Data will be captured in specific time, find it in 'K6_LEM.py' and EMBER website.
          "http://speth.github.io/ember-doc/sphinx/html/index.html"
-         
-         This function jus uses the chemistry input of the EMBER code and don't use any function in EMBER
-         
-         To reduce the time it is necessary to developed the code separately 
-         
-         For a problem with 3850 nodes and 18 species on a normal computer systems, it will take almost 2 days to get output.
+         *This function jus uses the chemistry input of the EMBER code and don't use any function in EMBER
+         *To reduce the time it is necessary to developed the code separately
+         *For a problem with 3850 nodes and 18 species on a normal computer systems, it will take almost 2 days to get output.
 
 Mojtaba Amini. January 2021.
